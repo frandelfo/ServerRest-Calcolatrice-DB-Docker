@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MySQL in Container Docker – ServerRest Calcolatrice DB</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f8f9fb;
+      --surface:   #ffffff;
+      --border:    #dde1e9;
+      --accent:    #2563eb;
+      --accent-lt: #eff6ff;
+      --green:     #16a34a;
+      --green-lt:  #f0fdf4;
+      --orange:    #d97706;
+      --orange-lt: #fffbeb;
+      --red:       #dc2626;
+      --red-lt:    #fef2f2;
+      --purple:    #7c3aed;
+      --purple-lt: #f5f3ff;
+      --code-bg:   #1e2330;
+      --code-fg:   #cdd6f4;
+      --text:      #1e293b;
+      --muted:     #64748b;
+      --radius:    8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ── */
+    .page-header {
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #3b82f6 100%);
+      color: #fff;
+      padding: 48px 32px 40px;
+    }
+    .page-header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 6px; }
+    .page-header p  { opacity: .85; font-size: 1.05rem; }
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.35);
+      border-radius: 99px;
+      padding: 2px 12px;
+      font-size: .78rem;
+      font-weight: 600;
+      margin-right: 6px;
+      margin-top: 14px;
+    }
+
+    main { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ── Table of contents ── */
+    .toc {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 40px;
+    }
+    .toc h2 { font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 12px; }
+    .toc ol  { padding-left: 18px; }
+    .toc li  { margin: 4px 0; }
+    .toc a   { color: var(--accent); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* ── Sections ── */
+    section { margin-bottom: 48px; }
+    section h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 6px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    section h2 .num {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 99px;
+      width: 28px; height: 28px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: .85rem; font-weight: 700; flex-shrink: 0;
+    }
+    section h3 { font-size: 1.05rem; font-weight: 600; margin: 22px 0 10px; }
+
+    p { margin-bottom: 12px; }
+    ul, ol { padding-left: 22px; margin-bottom: 12px; }
+    li { margin: 5px 0; }
+    strong { color: var(--text); }
+
+    /* ── Callout boxes ── */
+    .callout {
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin: 18px 0;
+      border-left: 4px solid;
+      font-size: .93rem;
+    }
+    .callout.info   { background: var(--accent-lt); border-color: var(--accent); }
+    .callout.ok     { background: var(--green-lt);  border-color: var(--green);  }
+    .callout.warn   { background: var(--orange-lt); border-color: var(--orange); }
+    .callout.tip    { background: var(--purple-lt); border-color: var(--purple); }
+    .callout-title  { font-weight: 700; margin-bottom: 4px; }
+    .callout.info  .callout-title { color: var(--accent);  }
+    .callout.ok    .callout-title { color: var(--green);   }
+    .callout.warn  .callout-title { color: var(--orange);  }
+    .callout.tip   .callout-title { color: var(--purple);  }
+
+    /* ── Code blocks ── */
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      overflow-x: auto;
+      font-size: .875rem;
+      line-height: 1.7;
+      margin: 14px 0;
+      position: relative;
+    }
+    pre .label {
+      position: absolute;
+      top: 8px; right: 12px;
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #6b7a99;
+      font-family: sans-serif;
+    }
+    code { font-family: "SF Mono", "Fira Code", Consolas, monospace; }
+    p code, li code {
+      background: #eef0f5;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: .875em;
+      color: #c026d3;
+    }
+
+    /* Syntax highlight */
+    .kw  { color: #89b4fa; }
+    .cm  { color: #6272a4; font-style: italic; }
+    .str { color: #a6e3a1; }
+    .num { color: #fab387; }
+    .cmd { color: #f8f8f2; }
+    .flag{ color: #cba6f7; }
+    .ann { color: #f9e2af; }   /* annotation / env-var name */
+
+    /* ── Tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: .9rem;
+    }
+    thead th {
+      background: var(--accent);
+      color: #fff;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+    }
+    tbody td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:nth-child(even) td { background: #f8faff; }
+
+    /* ── Step list ── */
+    .steps { counter-reset: step; list-style: none; padding: 0; }
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 14px;
+      margin-bottom: 18px;
+      align-items: flex-start;
+    }
+    .steps li::before {
+      content: counter(step);
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      width: 26px; height: 26px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; font-weight: 700; flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── Before/After comparison ── */
+    .diff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 14px 0;
+    }
+    .diff-grid .diff-card h3 {
+      margin: 0 0 0 0;
+      padding: 8px 14px;
+      font-size: .9rem;
+      border-radius: 8px 8px 0 0;
+      color: #fff;
+      font-weight: 600;
+    }
+    .diff-card.before h3 { background: #dc2626; }
+    .diff-card.after  h3 { background: #16a34a; }
+    .diff-card pre { margin: 0; border-radius: 0 0 var(--radius) var(--radius); }
+
+    @media (max-width: 680px) {
+      .diff-grid { grid-template-columns: 1fr; }
+      .page-header { padding: 32px 20px; }
+      .page-header h1 { font-size: 1.5rem; }
+      main { padding: 24px 16px 60px; }
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: .83rem;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ────────────────────────── HEADER ────────────────────────── -->
+<header class="page-header">
+  <h1>MySQL in Container Docker</h1>
+  <p>ServerRest Calcolatrice DB &mdash; da SQLite embedded a MySQL containerizzato</p>
+  <div>
+    <span class="badge">Java 24</span>
+    <span class="badge">Docker</span>
+    <span class="badge">MySQL 8</span>
+    <span class="badge">Docker Compose</span>
+    <span class="badge">REST API</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- ────────────────── INDICE ────────────────── -->
+  <nav class="toc">
+    <h2>Indice</h2>
+    <ol>
+      <li><a href="#architettura">Architettura del sistema</a></li>
+      <li><a href="#java">Modifiche a DatabaseManager.java</a></li>
+      <li><a href="#dockerfile">Il Dockerfile con supporto MySQL</a></li>
+      <li><a href="#compose">Il file docker-compose.yml</a></li>
+      <li><a href="#build">Build e avvio del sistema</a></li>
+      <li><a href="#verifica">Verifica del funzionamento</a></li>
+      <li><a href="#volumi">Persistenza dei dati con i volumi</a></li>
+      <li><a href="#comandi">Comandi utili</a></li>
+      <li><a href="#troubleshooting">Problemi comuni</a></li>
+    </ol>
+  </nav>
+
+  <!-- ──────────────────────────── 1. ARCHITETTURA ──────────────────────────── -->
+  <section id="architettura">
+    <h2><span class="num">1</span> Architettura del sistema</h2>
+
+    <p>Nella versione precedente il server Java comunicava con un database <strong>SQLite embedded</strong>: il file <code>calcolatrice.db</code> veniva creato direttamente nella directory di esecuzione. Questa soluzione è comoda ma non scalabile: SQLite non supporta connessioni concorrenti significative e non è adatto a un deploy su più istanze.</p>
+
+    <p>Con <strong>Docker Compose</strong> eseguiamo MySQL in un container separato. I due container — il server Java e MySQL — comunicano tra loro attraverso una <strong>rete interna Docker</strong>: ogni container è raggiungibile dagli altri usando il proprio <strong>nome di servizio</strong> come hostname.</p>
+
+    <h3>SQLite embedded vs MySQL containerizzato</h3>
+    <table>
+      <thead><tr><th>Aspetto</th><th>SQLite (prima)</th><th>MySQL in container (adesso)</th></tr></thead>
+      <tbody>
+        <tr><td>Installazione</td><td>Nessuna — driver incluso nel JAR</td><td>Container <code>mysql:8.0</code> gestito da Docker</td></tr>
+        <tr><td>Connessioni concorrenti</td><td>Limitata (file lock)</td><td>Piena concorrenza ACID</td></tr>
+        <tr><td>Portabilità</td><td>File .db legato al filesystem host</td><td>Dati in volume Docker — indipendenti dall'host</td></tr>
+        <tr><td>Configurazione</td><td>Parametri hardcoded nel codice</td><td>Variabili d'ambiente — zero modifiche al codice al cambio ambiente</td></tr>
+        <tr><td>Avvio</td><td><code>java -cp ... serverrest.App</code></td><td><code>docker compose up -d --build</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Diagramma dell'architettura</h3>
+
+    <svg viewBox="0 0 860 268" xmlns="http://www.w3.org/2000/svg"
+         role="img" aria-label="Architettura Docker: server Java + MySQL"
+         style="width:100%;max-width:860px;display:block;margin:18px auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+      <defs>
+        <marker id="arr-b" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+        </marker>
+        <marker id="arr-g" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#16a34a"/>
+        </marker>
+        <marker id="arr-o" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#d97706"/>
+        </marker>
+        <filter id="sh3" x="-10%" y="-10%" width="130%" height="150%">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0000001c"/>
+        </filter>
+        <linearGradient id="gGreen3" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f0fdf4"/>
+          <stop offset="100%" stop-color="#dcfce7"/>
+        </linearGradient>
+        <linearGradient id="gOrange3" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fffbeb"/>
+          <stop offset="100%" stop-color="#fef3c7"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Docker Host (outer) -->
+      <rect x="4" y="4" width="852" height="220" rx="12" fill="#f8f9fb" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="7,4"/>
+      <text x="20" y="22" font-size="10" font-weight="700" fill="#64748b" letter-spacing=".07em">DOCKER HOST</text>
+
+      <!-- Docker Network (inner) -->
+      <rect x="22" y="30" width="816" height="186" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+      <text x="38" y="47" font-size="10" font-weight="600" fill="#3b82f6" letter-spacing=".06em">DOCKER NETWORK  (rete interna — creata automaticamente da Docker Compose)</text>
+
+      <!-- ── server container ── -->
+      <g filter="url(#sh3)">
+        <rect x="44" y="58" width="200" height="148" rx="8" fill="url(#gGreen3)" stroke="#16a34a" stroke-width="1.8"/>
+      </g>
+      <rect x="44" y="58" width="200" height="30" rx="8" fill="#16a34a"/>
+      <rect x="44" y="76" width="200" height="12" fill="#16a34a"/>
+      <text x="144" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">server</text>
+
+      <text x="62" y="108" font-size="10" fill="#166534" font-weight="600">Immagine:</text>
+      <text x="62" y="122" font-size="9.5" fill="#166534">eclipse-temurin:24-jre-alpine</text>
+
+      <text x="62" y="140" font-size="10" fill="#166534" font-weight="600">Applicazione:</text>
+      <text x="62" y="154" font-size="9.5" fill="#166534">Java REST Calcolatrice</text>
+
+      <rect x="62" y="163" width="164" height="22" rx="5" fill="#16a34a" opacity=".15" stroke="#16a34a" stroke-width="1"/>
+      <text x="144" y="178" text-anchor="middle" font-size="9.5" fill="#14532d" font-weight="700">-p 8080:8080</text>
+
+      <text x="62" y="198" font-size="9" fill="#16a34a">DB_TYPE=MYSQL</text>
+
+      <!-- ── mysql container ── -->
+      <g filter="url(#sh3)">
+        <rect x="590" y="58" width="228" height="148" rx="8" fill="url(#gOrange3)" stroke="#d97706" stroke-width="1.8"/>
+      </g>
+      <rect x="590" y="58" width="228" height="30" rx="8" fill="#d97706"/>
+      <rect x="590" y="76" width="228" height="12" fill="#d97706"/>
+      <text x="704" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">mysql</text>
+
+      <text x="608" y="108" font-size="10" fill="#78350f" font-weight="600">Immagine:</text>
+      <text x="608" y="122" font-size="9.5" fill="#78350f">mysql:8.0</text>
+
+      <text x="608" y="140" font-size="10" fill="#78350f" font-weight="600">Database:</text>
+      <text x="608" y="154" font-size="9.5" fill="#78350f">calcolatrice_db</text>
+
+      <rect x="608" y="163" width="192" height="22" rx="5" fill="#d97706" opacity=".15" stroke="#d97706" stroke-width="1"/>
+      <text x="704" y="178" text-anchor="middle" font-size="9.5" fill="#451a03" font-weight="700">solo rete interna (3306)</text>
+
+      <text x="608" y="198" font-size="9" fill="#d97706">healthcheck: mysqladmin ping</text>
+
+      <!-- Arrow server → mysql -->
+      <line x1="246" y1="132" x2="588" y2="132" stroke="#2563eb" stroke-width="2" marker-end="url(#arr-b)"/>
+      <rect x="290" y="117" width="260" height="22" rx="11" fill="#2563eb"/>
+      <text x="420" y="131" text-anchor="middle" font-size="9.5" font-weight="600" fill="#fff">MYSQL_HOST=mysql  ·  porta 3306</text>
+
+      <!-- Volume below mysql -->
+      <ellipse cx="704" cy="253" rx="52" ry="10" fill="#fde68a" stroke="#d97706" stroke-width="1.5"/>
+      <rect x="652" y="243" width="104" height="10" fill="#fde68a"/>
+      <line x1="652" y1="243" x2="652" y2="253" stroke="#d97706" stroke-width="1.5"/>
+      <line x1="756" y1="243" x2="756" y2="253" stroke="#d97706" stroke-width="1.5"/>
+      <ellipse cx="704" cy="243" rx="52" ry="10" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+      <text x="704" y="247" text-anchor="middle" font-size="9" font-weight="600" fill="#78350f">mysql_data  (volume Docker)</text>
+      <line x1="704" y1="208" x2="704" y2="232" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arr-o)"/>
+
+      <!-- External access -->
+      <line x1="100" y1="242" x2="100" y2="208" stroke="#16a34a" stroke-width="2" marker-end="url(#arr-g)"/>
+      <rect x="28" y="246" width="152" height="20" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+      <text x="104" y="259" text-anchor="middle" font-size="9.5" font-weight="600" fill="#15803d">http://localhost:8080</text>
+    </svg>
+
+    <div class="callout info">
+      <div class="callout-title">Come funziona il networking interno</div>
+      Docker Compose crea automaticamente una rete privata condivisa da tutti i servizi definiti nel file <code>docker-compose.yml</code>. All'interno di questa rete ogni container può raggiungere gli altri usando il <strong>nome del servizio come hostname</strong>. Per questo il server Java usa <code>MYSQL_HOST=mysql</code>: Docker risolve automaticamente <code>mysql</code> nell'indirizzo IP del container MySQL.
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── 2. JAVA ──────────────────────────── -->
+  <section id="java">
+    <h2><span class="num">2</span> Modifiche a DatabaseManager.java</h2>
+
+    <p>Il problema principale con il deploy in container è che i <strong>valori hardcoded</strong> nel codice sorgente non funzionano: in un container il database MySQL non è su <code>localhost</code> ma su un hostname dinamico (<code>mysql</code> nel caso di Docker Compose). Ogni ambiente (sviluppo, test, produzione) usa credenziali e hostname diversi.</p>
+
+    <p>La soluzione è leggere tutti i parametri di connessione da <strong>variabili d'ambiente</strong>, mantenendo i valori originali come <em>fallback</em> quando la variabile non è impostata. In questo modo il codice funziona sia in locale (SQLite, senza variabili) sia in Docker (MySQL, variabili impostate da docker-compose.yml).</p>
+
+    <h3>Modifica 1 — Selezione del database (DB_TYPE)</h3>
+    <p>Prima della modifica il tipo di database era una costante fissa a compile-time. Adesso viene letta dall'ambiente a runtime tramite il metodo helper <code>resolveDbType()</code>.</p>
+
+    <div class="diff-grid">
+      <div class="diff-card before">
+        <h3>✕ Prima (hardcoded)</h3>
+<pre><code><span class="cm">/** Seleziona il database */</span>
+<span class="kw">private static final</span> DbType DB_SELEZIONATO
+    = DbType.SQLITE;
+</code></pre>
+      </div>
+      <div class="diff-card after">
+        <h3>✓ Dopo (variabile d'ambiente)</h3>
+<pre><code><span class="cm">/** Legge DB_TYPE da env (SQLITE o MYSQL) */</span>
+<span class="kw">private static final</span> DbType DB_SELEZIONATO
+    = resolveDbType();
+</code></pre>
+      </div>
+    </div>
+
+    <h3>Modifica 2 — Parametri di connessione MySQL</h3>
+    <p>Ogni parametro legge prima la variabile d'ambiente corrispondente; se assente o vuota, usa il valore di default originale. Il comportamento in locale rimane invariato.</p>
+
+    <div class="diff-grid">
+      <div class="diff-card before">
+        <h3>✕ Prima (valori fissi)</h3>
+<pre><code><span class="kw">private static final</span> String MYSQL_HOST
+    = <span class="str">"localhost"</span>;
+<span class="kw">private static final</span> <span class="kw">int</span> MYSQL_PORT
+    = <span class="num">3306</span>;
+<span class="kw">private static final</span> String MYSQL_DATABASE
+    = <span class="str">"calcolatrice_db"</span>;
+<span class="kw">private static final</span> String MYSQL_USER
+    = <span class="str">"serverrest"</span>;
+<span class="kw">private static final</span> String MYSQL_PASSWORD
+    = <span class="str">"calcolatrice"</span>;
+</code></pre>
+      </div>
+      <div class="diff-card after">
+        <h3>✓ Dopo (variabili d'ambiente)</h3>
+<pre><code><span class="kw">private static final</span> String MYSQL_HOST
+    = envOr(<span class="str">"MYSQL_HOST"</span>,     <span class="str">"localhost"</span>);
+<span class="kw">private static final int</span> MYSQL_PORT
+    = Integer.parseInt(
+        envOr(<span class="str">"MYSQL_PORT"</span>, <span class="str">"3306"</span>));
+<span class="kw">private static final</span> String MYSQL_DATABASE
+    = envOr(<span class="str">"MYSQL_DATABASE"</span>, <span class="str">"calcolatrice_db"</span>);
+<span class="kw">private static final</span> String MYSQL_USER
+    = envOr(<span class="str">"MYSQL_USER"</span>,     <span class="str">"serverrest"</span>);
+<span class="kw">private static final</span> String MYSQL_PASSWORD
+    = envOr(<span class="str">"MYSQL_PASSWORD"</span>, <span class="str">"calcolatrice"</span>);
+</code></pre>
+      </div>
+    </div>
+
+    <h3>Modifica 3 — Metodi helper privati</h3>
+    <p>Due metodi statici privati agiunti nella sezione dei metodi privati della classe. Non modificano nessuna logica esistente: servono solo alla sezione di configurazione.</p>
+
+<pre><code><span class="label">DatabaseManager.java</span><span class="cm">// Restituisce DbType.MYSQL se la variabile d'ambiente DB_TYPE vale "MYSQL" (case-insensitive);
+// in tutti gli altri casi (variabile assente, vuota, o "SQLITE") restituisce DbType.SQLITE.</span>
+<span class="kw">private static</span> DbType resolveDbType() {
+    <span class="kw">return</span> <span class="str">"MYSQL"</span>.equalsIgnoreCase(System.getenv(<span class="str">"DB_TYPE"</span>))
+           ? DbType.MYSQL : DbType.SQLITE;
+}
+
+<span class="cm">// Legge il valore della variabile d'ambiente `name`;
+// se non esiste o è blank, restituisce il valore di default `def`.</span>
+<span class="kw">private static</span> String envOr(String name, String def) {
+    String v = System.getenv(name);
+    <span class="kw">return</span> (v != <span class="kw">null</span> &amp;&amp; !v.isBlank()) ? v : def;
+}
+</code></pre>
+
+    <h3>Tabella delle variabili d'ambiente</h3>
+    <table>
+      <thead>
+        <tr><th>Variabile</th><th>Default (locale)</th><th>Valore in Docker</th><th>Significato</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>DB_TYPE</code></td><td><em>non impostata → SQLITE</em></td><td><code>MYSQL</code></td><td>Seleziona il driver da usare</td></tr>
+        <tr><td><code>MYSQL_HOST</code></td><td><code>localhost</code></td><td><code>mysql</code></td><td>Hostname del server MySQL (= nome servizio Docker)</td></tr>
+        <tr><td><code>MYSQL_PORT</code></td><td><code>3306</code></td><td><code>3306</code></td><td>Porta TCP di MySQL</td></tr>
+        <tr><td><code>MYSQL_DATABASE</code></td><td><code>calcolatrice_db</code></td><td><code>calcolatrice_db</code></td><td>Nome del database</td></tr>
+        <tr><td><code>MYSQL_USER</code></td><td><code>serverrest</code></td><td><code>serverrest</code></td><td>Utente per la connessione JDBC</td></tr>
+        <tr><td><code>MYSQL_PASSWORD</code></td><td><code>calcolatrice</code></td><td><code>calcolatrice</code></td><td>Password dell'utente</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout ok">
+      <div class="callout-title">Retrocompatibilità garantita</div>
+      I default corrispondono esattamente ai valori hardcoded originali: il progetto si compila e gira in locale con Ant esattamente come prima, senza impostare alcuna variabile d'ambiente.
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── 3. DOCKERFILE ──────────────────────────── -->
+  <section id="dockerfile">
+    <h2><span class="num">3</span> Il Dockerfile con supporto MySQL</h2>
+
+    <p>Il Dockerfile usa un <strong>multi-stage build</strong> ispirato allo stile del file <code>Dockerfile.mac</code> del progetto: immagini Alpine leggere, commenti in italiano, <code>ENTRYPOINT + CMD</code> per la porta configurabile.</p>
+
+    <p>Rispetto alla versione base (solo SQLite) sono stati aggiunti due passi nel <em>Build stage</em>: l'installazione di <code>curl</code> e il download dei driver JDBC mancanti (<code>sqlite-jdbc</code> non è tracciato in git; <code>mysql-connector-j</code> non era necessario in precedenza).</p>
+
+<pre><code><span class="label">Dockerfile</span><span class="cm"># ── Stage 1: Build ──────────────────────────────────────────</span>
+<span class="kw">FROM</span> eclipse-temurin:<span class="num">24-jdk</span> <span class="kw">AS</span> build
+
+<span class="cm"># Installa Apache Ant e curl (necessari per la build e per scaricare i driver)</span>
+<span class="kw">RUN</span> <span class="cmd">apt-get update &amp;&amp; apt-get install -y ant curl &amp;&amp; rm -rf /var/lib/apt/lists/*</span>
+
+<span class="cm"># Crea la directory di lavoro</span>
+<span class="kw">WORKDIR</span> /build
+
+<span class="cm"># Copia i file necessari per la build</span>
+<span class="kw">COPY</span> lib/        lib/
+<span class="kw">COPY</span> src/        src/
+<span class="kw">COPY</span> build.xml   .
+<span class="kw">COPY</span> manifest.mf .
+<span class="kw">COPY</span> nbproject/  nbproject/
+
+<span class="cm"># Scarica i driver JDBC: sqlite-jdbc (non tracciato in git) e mysql-connector-j</span>
+<span class="kw">RUN</span> <span class="cmd">curl -fsSL</span> \
+      <span class="str">"https://github.com/xerial/sqlite-jdbc/releases/download/3.46.1.3/sqlite-jdbc-3.46.1.3.jar"</span> \
+      <span class="flag">-o</span> lib/sqlite-jdbc.jar \
+ &amp;&amp; <span class="cmd">curl -fsSL</span> \
+      <span class="str">"https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.4.0/mysql-connector-j-8.4.0.jar"</span> \
+      <span class="flag">-o</span> lib/mysql-connector-j.jar
+
+<span class="cm"># Compila e crea il JAR tramite Ant</span>
+<span class="kw">RUN</span> <span class="cmd">ant jar</span>
+
+<span class="cm"># ── Stage 2: Runtime ─────────────────────────────────────────</span>
+<span class="kw">FROM</span> eclipse-temurin:<span class="num">24-jdk</span>
+
+<span class="kw">WORKDIR</span> /app
+
+<span class="cm"># Copia il JAR prodotto e tutti i driver JDBC</span>
+<span class="kw">COPY</span> <span class="flag">--from=build</span> /build/dist/ServerRest.jar          dist/ServerRest.jar
+<span class="kw">COPY</span> <span class="flag">--from=build</span> /build/lib/gson-2.13.2.jar          lib/gson-2.13.2.jar
+<span class="kw">COPY</span> <span class="flag">--from=build</span> /build/lib/sqlite-jdbc.jar          lib/sqlite-jdbc.jar
+<span class="kw">COPY</span> <span class="flag">--from=build</span> /build/lib/mysql-connector-j.jar    lib/mysql-connector-j.jar
+
+<span class="cm"># Espone la porta del server REST</span>
+<span class="kw">EXPOSE</span> <span class="num">8080</span>
+
+<span class="cm"># Avvia il server; il database è configurato tramite la variabile d'ambiente DB_TYPE.</span>
+<span class="cm"># Il numero di porta può essere sovrascritto passando un argomento: docker run ... image 9090</span>
+<span class="kw">ENTRYPOINT</span> [<span class="str">"java"</span>, \
+    <span class="str">"-cp"</span>, <span class="str">"dist/ServerRest.jar:lib/gson-2.13.2.jar:lib/sqlite-jdbc.jar:lib/mysql-connector-j.jar"</span>, \
+    <span class="str">"serverrest.App"</span>]
+<span class="kw">CMD</span> [<span class="str">"8080"</span>]
+</code></pre>
+
+    <h3>Spiegazione delle istruzioni aggiunte</h3>
+    <table>
+      <thead><tr><th>Istruzione</th><th>Perché è stata aggiunta</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>apt-get install ant curl</code></td>
+          <td>Installa Apache Ant (necessario per la build del progetto NetBeans) e curl (per scaricare i driver JDBC). L'immagine base <code>eclipse-temurin:24-jdk</code> non li include.</td>
+        </tr>
+        <tr>
+          <td><code>curl ... sqlite-jdbc-3.46.1.3.jar</code></td>
+          <td>Il file <code>sqlite-jdbc.jar</code> non è tracciato in git (da aggiungere manualmente per lo sviluppo locale). Il Dockerfile lo scarica automaticamente alla build.</td>
+        </tr>
+        <tr>
+          <td><code>curl ... mysql-connector-j-8.4.0.jar</code></td>
+          <td>Driver JDBC per MySQL, non presente in precedenza. Viene scaricato da Maven Central e inserito in <code>lib/</code> prima della compilazione Ant.</td>
+        </tr>
+        <tr>
+          <td><code>COPY --from=build /build/lib/... lib/</code></td>
+          <td>Ogni driver viene copiato singolarmente dal build stage al runtime stage, portando nel container solo i JAR necessari all'esecuzione.</td>
+        </tr>
+        <tr>
+          <td><code>...:lib/sqlite-jdbc.jar:lib/mysql-connector-j.jar</code> nel classpath</td>
+          <td>Entrambi i driver devono essere nel classpath a runtime: <code>sqlite-jdbc</code> per la modalità SQLite (default locale), <code>mysql-connector-j</code> per la modalità MySQL (container).</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout tip">
+      <div class="callout-title">Multi-stage build — perché conviene</div>
+      Lo Stage 1 (<code>build</code>) contiene JDK 24 + Ant + curl (~500 MB). Lo Stage 2 (runtime) usa la stessa immagine base ma senza strumenti di build: contiene esclusivamente il JAR compilato e i driver JDBC. L'immagine finale è più piccola e non espone compilatore né Ant.
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── 4. COMPOSE ──────────────────────────── -->
+  <section id="compose">
+    <h2><span class="num">4</span> Il file docker-compose.yml</h2>
+
+    <p>Docker Compose orchestra i due servizi, la rete interna e il volume persistente in un unico file dichiarativo. Ecco il file completo con commenti esplicativi:</p>
+
+<pre><code><span class="label">docker-compose.yml</span><span class="kw">version</span>: <span class="str">'3.8'</span>
+
+<span class="kw">services</span>:
+
+  <span class="cm"># ── Database MySQL ────────────────────────────────────────────────────────</span>
+  <span class="ann">mysql</span>:
+    <span class="kw">image</span>: <span class="str">mysql:8.0</span>
+    <span class="kw">environment</span>:
+      <span class="kw">MYSQL_ROOT_PASSWORD</span>: <span class="str">root_password</span>      <span class="cm"># password dell'utente root</span>
+      <span class="kw">MYSQL_DATABASE</span>:      <span class="str">calcolatrice_db</span>    <span class="cm"># crea automaticamente il database</span>
+      <span class="kw">MYSQL_USER</span>:          <span class="str">serverrest</span>         <span class="cm"># utente applicazione (non root)</span>
+      <span class="kw">MYSQL_PASSWORD</span>:      <span class="str">calcolatrice</span>       <span class="cm"># password utente applicazione</span>
+    <span class="kw">volumes</span>:
+      <span class="cm"># Script SQL eseguito automaticamente al primo avvio</span>
+      - <span class="str">./sql/create_tables_mysql.sql:/docker-entrypoint-initdb.d/init.sql:ro</span>
+      <span class="cm"># Volume Docker per la persistenza dei dati MySQL</span>
+      - <span class="str">mysql_data:/var/lib/mysql</span>
+    <span class="kw">ports</span>:
+      - <span class="str">"3306:3306"</span>   <span class="cm"># opzionale: espone la porta sull'host per accesso diretto</span>
+    <span class="kw">healthcheck</span>:
+      <span class="cm"># Verifica che MySQL accetti connessioni prima di avviare il server</span>
+      <span class="kw">test</span>: [<span class="str">"CMD"</span>, <span class="str">"mysqladmin"</span>, <span class="str">"ping"</span>, <span class="str">"-h"</span>, <span class="str">"localhost"</span>, <span class="str">"-uroot"</span>, <span class="str">"-proot_password"</span>]
+      <span class="kw">interval</span>:     <span class="num">10s</span>
+      <span class="kw">timeout</span>:       <span class="num">5s</span>
+      <span class="kw">retries</span>:      <span class="num">10</span>
+      <span class="kw">start_period</span>: <span class="num">30s</span>   <span class="cm"># margine per l'inizializzazione al primo avvio</span>
+
+  <span class="cm"># ── Server REST Java ──────────────────────────────────────────────────────</span>
+  <span class="ann">server</span>:
+    <span class="kw">build</span>: .                 <span class="cm"># usa il Dockerfile nella directory corrente</span>
+    <span class="kw">ports</span>:
+      - <span class="str">"8080:8080"</span>
+    <span class="kw">environment</span>:
+      <span class="kw">DB_TYPE</span>:        <span class="str">MYSQL</span>
+      <span class="kw">MYSQL_HOST</span>:     <span class="str">mysql</span>            <span class="cm"># nome del servizio = hostname nella rete Docker</span>
+      <span class="kw">MYSQL_PORT</span>:     <span class="str">"3306"</span>
+      <span class="kw">MYSQL_DATABASE</span>: <span class="str">calcolatrice_db</span>
+      <span class="kw">MYSQL_USER</span>:     <span class="str">serverrest</span>
+      <span class="kw">MYSQL_PASSWORD</span>: <span class="str">calcolatrice</span>
+    <span class="kw">depends_on</span>:
+      <span class="kw">mysql</span>:
+        <span class="kw">condition</span>: <span class="str">service_healthy</span>   <span class="cm"># attende il healthcheck MySQL</span>
+    <span class="kw">restart</span>: <span class="str">on-failure</span>             <span class="cm"># riprova se MySQL non era ancora pronto</span>
+
+<span class="kw">volumes</span>:
+  <span class="ann">mysql_data</span>:    <span class="cm"># dichiarazione del volume gestito da Docker</span>
+</code></pre>
+
+    <h3>Punti chiave del file</h3>
+
+    <table>
+      <thead><tr><th>Elemento</th><th>Spiegazione</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>MYSQL_DATABASE: calcolatrice_db</code></td>
+          <td>L'immagine <code>mysql:8.0</code> crea automaticamente questo database al primo avvio, prima di eseguire gli script di init.</td>
+        </tr>
+        <tr>
+          <td><code>MYSQL_USER / MYSQL_PASSWORD</code></td>
+          <td>Crea un utente dedicato (non root) con accesso al solo database <code>calcolatrice_db</code>. Buona pratica di sicurezza.</td>
+        </tr>
+        <tr>
+          <td><code>/docker-entrypoint-initdb.d/init.sql</code></td>
+          <td>MySQL esegue automaticamente tutti gli script in questa directory al primo avvio del container. Usato per creare la tabella <code>operazioni</code>.</td>
+        </tr>
+        <tr>
+          <td><code>healthcheck</code></td>
+          <td>Docker testa periodicamente con <code>mysqladmin ping</code> se MySQL è pronto. Solo quando il test passa, il container è dichiarato <em>healthy</em>.</td>
+        </tr>
+        <tr>
+          <td><code>depends_on: condition: service_healthy</code></td>
+          <td>Docker Compose non avvia il container <code>server</code> finché <code>mysql</code> non è dichiarato healthy. Previene errori di "connection refused" al bootstrap.</td>
+        </tr>
+        <tr>
+          <td><code>MYSQL_HOST: mysql</code></td>
+          <td>Il server Java usa questo hostname per connettersi a MySQL. Docker risolve automaticamente <code>mysql</code> all'IP del container MySQL nella rete interna.</td>
+        </tr>
+        <tr>
+          <td><code>mysql_data:/var/lib/mysql</code></td>
+          <td>I dati MySQL sono salvati in un volume Docker: sopravvivono al <code>docker compose down</code> e vengono eliminati solo con <code>docker compose down -v</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <div class="callout-title">start_period: 30s — perché è importante</div>
+      Al primo avvio MySQL deve creare le strutture interne, impostare l'utente e il database, ed eseguire lo script init.sql. Questo richiede più tempo del normale. Il parametro <code>start_period</code> dice a Docker di non contare i fallimenti del healthcheck nei primi 30 secondi: impedisce che il container venga dichiarato <em>unhealthy</em> prima che abbia finito di inizializzarsi.
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── 5. BUILD ──────────────────────────── -->
+  <section id="build">
+    <h2><span class="num">5</span> Build e avvio del sistema</h2>
+
+    <p>Un singolo comando si occupa di tutto: compilare il JAR Java, scaricare i driver JDBC, costruire l'immagine Docker e avviare entrambi i container.</p>
+
+<pre><code><span class="cm"># Dalla cartella radice del progetto (dove si trova docker-compose.yml)</span>
+<span class="cmd">docker compose up -d --build</span>
+</code></pre>
+
+    <h3>Cosa fa questo comando passo per passo</h3>
+    <ol class="steps">
+      <li>Legge <code>docker-compose.yml</code> e identifica i due servizi: <code>mysql</code> e <code>server</code>.</li>
+      <li>Esegue il <strong>multi-stage build</strong> del <code>Dockerfile</code>: installa Ant, scarica i driver JDBC, compila il progetto con <code>ant jar</code>, crea l'immagine runtime Alpine con solo il JAR e le lib.</li>
+      <li>Scarica l'immagine <code>mysql:8.0</code> da Docker Hub (solo al primo avvio, poi è in cache).</li>
+      <li>Avvia il container <strong>mysql</strong> e inizia i healthcheck ogni 10 secondi.</li>
+      <li>Attende che MySQL superi il healthcheck (fino a 10 tentativi × 10 secondi = 100 secondi).</li>
+      <li>Avvia il container <strong>server</strong> con le variabili d'ambiente definite in docker-compose.yml.</li>
+      <li>Il flag <code>-d</code> (detached) fa girare tutto in background: il terminale è subito libero.</li>
+    </ol>
+
+    <h3>Output atteso durante la build</h3>
+<pre><code>[+] Building 52.3s (16/16) FINISHED
+ => [builder 1/7] FROM eclipse-temurin:24-jdk-alpine
+ => [builder 2/7] RUN apk add --no-cache ant curl
+ => [builder 3/7] WORKDIR /app
+ => [builder 4/7] COPY src/ ...
+ => [builder 5/7] COPY lib/ ...
+ => [builder 6/7] RUN curl ... sqlite-jdbc ... &amp;&amp; curl ... mysql-connector-j ...
+ => [builder 7/7] RUN ant jar
+
+BUILD SUCCESSFUL
+
+ => [stage-1 2/3] COPY --from=builder /app/dist/ServerRest.jar ...
+ => [stage-1 3/3] COPY --from=builder /app/lib/ ...
+ => exporting to image
+[+] Running 3/3
+ ✔ Volume "serverrest-calcolatrice-db-docker_mysql_data"  Created
+ ✔ Container mysql                                        Started
+ ✔ Container server                                       Started</code></pre>
+
+    <div class="callout ok">
+      <div class="callout-title">Il sistema è operativo</div>
+      Quando compare <code>✔ Container server  Started</code>, il server REST è in ascolto su <code>http://localhost:8080</code> e MySQL è raggiungibile internamente sulla porta 3306.
+    </div>
+
+    <h3>Verificare lo stato dei container</h3>
+<pre><code><span class="cm"># Mostra stato e porte di tutti i container del progetto</span>
+<span class="cmd">docker compose ps</span>
+
+<span class="cm"># Output atteso:</span>
+<span class="cm"># NAME     IMAGE        COMMAND              STATUS          PORTS</span>
+<span class="cm"># mysql    mysql:8.0    "docker-entrypoint…" Up (healthy)    0.0.0.0:3306-&gt;3306/tcp</span>
+<span class="cm"># server   server       "java -cp Server…"   Up              0.0.0.0:8080-&gt;8080/tcp</span>
+</code></pre>
+
+    <div class="callout info">
+      <div class="callout-title">mysql mostra "(healthy)" — cosa significa</div>
+      La colonna STATUS riporta <code>Up (healthy)</code> per il container MySQL solo dopo che il healthcheck ha avuto successo. Se mostra <code>Up (health: starting)</code>, sta ancora inizializzandosi: attendere qualche secondo e ripetere il comando.
+    </div>
+  </section>
+
+  <!-- ──────────────────────────── 6. VERIFICA ──────────────────────────── -->
+  <section id="verifica">
+    <h2><span class="num">6</span> Verifica del funzionamento</h2>
+
+    <h3>Log del server Java in tempo reale</h3>
+<pre><code><span class="cmd">docker compose logs -f server</span>
+
+<span class="cm"># Output atteso all'avvio:</span>
+<span class="cm"># [DB] Connessione aperta (MYSQL)</span>
+<span class="cm"># ==============================================</span>
+<span class="cm">#   Server REST Calcolatrice con DB avviato!</span>
+<span class="cm"># ==============================================</span>
+<span class="cm"># Porta: 8080</span>
+<span class="cm"># Database:  calcolatrice.db (SQLite, nella directory corrente)  ← non più!</span>
+<span class="cm"># Database:  mysql://mysql:3306/calcolatrice_db</span>
+</code></pre>
+
+    <h3>Test degli endpoint REST</h3>
+
+<pre><code><span class="cm"># Calcolo via POST — risponde 201 con id e timestamp generati da MySQL</span>
+<span class="cmd">curl -X POST http://localhost:8080/api/calcola/post</span> \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"operando1": 10, "operando2": 5, "operatore": "SOMMA"}'</span>
+
+<span class="cm"># Risposta attesa:</span>
+<span class="cm"># {</span>
+<span class="cm">#   "id": 1,</span>
+<span class="cm">#   "timestamp": "2026-05-22 09:30:00",</span>
+<span class="cm">#   "risposta": {</span>
+<span class="cm">#     "operando1": 10.0,</span>
+<span class="cm">#     "operando2": 5.0,</span>
+<span class="cm">#     "operatore": "SOMMA",</span>
+<span class="cm">#     "risultato": 15.0,</span>
+<span class="cm">#     "operazione": "10,00 SOMMA 5,00 = 15,00"</span>
+<span class="cm">#   }</span>
+<span class="cm"># }</span>
+
+<span class="cm"># Lista delle operazioni salvate nel database MySQL</span>
+<span class="cmd">curl http://localhost:8080/api/operazioni</span>
+
+<span class="cm"># Singola operazione per id</span>
+<span class="cmd">curl http://localhost:8080/api/operazioni/1</span>
+
+<span class="cm"># Calcolo via GET</span>
+<span class="cmd">curl "http://localhost:8080/api/calcola/get?operando1=7&amp;operando2=3&amp;operatore=MOLTIPLICAZIONE"</span>
+</code></pre>
+
+    <h3>Accesso diretto a MySQL dal terminale</h3>
+    <p>È possibile connettersi al container MySQL direttamente per ispezionare il database:</p>
+<pre><code><span class="cm"># Apre una sessione MySQL nel container (usa l'utente root)</span>
+<span class="cmd">docker compose exec mysql</span> \
+  <span class="cmd">mysql -uroot -proot_password calcolatrice_db</span>
+
+<span class="cm"># Oppure con l'utente applicazione</span>
+<span class="cmd">docker compose exec mysql</span> \
+  <span class="cmd">mysql -userverest -pcalcolatrice calcolatrice_db</span>
+
+<span class="cm"># Query di esempio per verificare i dati</span>
+<span class="cm"># mysql&gt; SELECT * FROM operazioni ORDER BY id DESC LIMIT 10;</span>
+</code></pre>
+  </section>
+
+  <!-- ──────────────────────────── 7. VOLUMI ──────────────────────────── -->
+  <section id="volumi">
+    <h2><span class="num">7</span> Persistenza dei dati con i volumi</h2>
+
+    <p>Il volume Docker <code>mysql_data</code> è il meccanismo che rende i dati MySQL <strong>indipendenti dal ciclo di vita del container</strong>. Senza volume, ogni <code>docker compose down</code> distruggerebbe il database.</p>
+
+    <table>
+      <thead><tr><th>Comando</th><th>Cosa succede ai dati</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>docker compose down</code></td>
+          <td>I container vengono fermati e rimossi. Il volume <code>mysql_data</code> <strong>sopravvive</strong>: al prossimo <code>up</code>, MySQL ritrova tutti i dati.</td>
+        </tr>
+        <tr>
+          <td><code>docker compose down -v</code></td>
+          <td>I container <strong>e il volume</strong> vengono eliminati. Il database viene <strong>azzerato</strong>. Utile per un reset completo in sviluppo.</td>
+        </tr>
+        <tr>
+          <td><code>docker compose stop</code></td>
+          <td>I container vengono sospesi (non rimossi). Il volume non è toccato.</td>
+        </tr>
+        <tr>
+          <td><code>docker compose up -d</code> (senza <code>--build</code>)</td>
+          <td>Riavvia i container esistenti. Se il volume esiste già, MySQL usa i dati precedenti <em>senza</em> rieseguire lo script di init.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <div class="callout-title">Lo script init.sql viene eseguito solo al primo avvio</div>
+      La cartella <code>/docker-entrypoint-initdb.d/</code> viene elaborata da MySQL <strong>solo quando il volume è vuoto</strong> (primo avvio o dopo <code>down -v</code>). Nelle esecuzioni successive MySQL trova già i propri file di sistema nel volume e salta l'inizializzazione. Non preoccuparsi: la tabella <code>operazioni</code> viene comunque creata da <code>DatabaseManager.initSchema()</code> che usa <code>CREATE TABLE IF NOT EXISTS</code>.
+    </div>
+
+    <h3>Ispezionare il volume</h3>
+<pre><code><span class="cm"># Mostra i dettagli del volume (posizione sul filesystem host, ecc.)</span>
+<span class="cmd">docker volume inspect serverrest-calcolatrice-db-docker_mysql_data</span>
+
+<span class="cm"># Elenco di tutti i volumi Docker presenti nel sistema</span>
+<span class="cmd">docker volume ls</span>
+</code></pre>
+  </section>
+
+  <!-- ──────────────────────────── 8. COMANDI ──────────────────────────── -->
+  <section id="comandi">
+    <h2><span class="num">8</span> Comandi utili</h2>
+
+    <h3>Ciclo di vita del sistema</h3>
+<pre><code><span class="cm"># Avvia tutto (build inclusa) in background</span>
+<span class="cmd">docker compose up -d --build</span>
+
+<span class="cm"># Ferma e rimuove i container (i dati MySQL restano nel volume)</span>
+<span class="cmd">docker compose down</span>
+
+<span class="cm"># Ferma, rimuove container E il volume (reset completo del database)</span>
+<span class="cmd">docker compose down -v</span>
+
+<span class="cm"># Solo ferma i container senza rimuoverli</span>
+<span class="cmd">docker compose stop</span>
+
+<span class="cm"># Riavvia i container (senza rebuild)</span>
+<span class="cmd">docker compose start</span>
+
+<span class="cm"># Ricostruisce solo l'immagine del server (dopo modifiche al codice Java)</span>
+<span class="cmd">docker compose up -d --build server</span>
+</code></pre>
+
+    <h3>Diagnostica</h3>
+<pre><code><span class="cm"># Stato e porte di tutti i container del progetto</span>
+<span class="cmd">docker compose ps</span>
+
+<span class="cm"># Log in tempo reale del server Java</span>
+<span class="cmd">docker compose logs -f server</span>
+
+<span class="cm"># Log in tempo reale di MySQL</span>
+<span class="cmd">docker compose logs -f mysql</span>
+
+<span class="cm"># Log di entrambi insieme</span>
+<span class="cmd">docker compose logs -f</span>
+
+<span class="cm"># Shell nel container server (per debug)</span>
+<span class="cmd">docker compose exec server sh</span>
+
+<span class="cm"># Shell nel container MySQL</span>
+<span class="cmd">docker compose exec mysql sh</span>
+</code></pre>
+  </section>
+
+  <!-- ──────────────────────────── 9. TROUBLESHOOTING ──────────────────────────── -->
+  <section id="troubleshooting">
+    <h2><span class="num">9</span> Problemi comuni</h2>
+
+    <div class="callout warn">
+      <div class="callout-title">Problema: il server Java si avvia e si chiude subito</div>
+      MySQL non era ancora pronto quando il server ha tentato la connessione, oppure le credenziali sono errate.<br><br>
+      <strong>Diagnostica:</strong>
+      <pre style="margin:8px 0 4px;font-size:.82rem"><code><span class="cmd">docker compose logs server</span>
+<span class="cm"># Cerca: "Errore di connessione al database: ..."</span></code></pre>
+      <strong>Soluzione:</strong> il parametro <code>restart: on-failure</code> fa sì che Docker riavvii automaticamente il server. Se il problema persiste, verificare che le variabili <code>MYSQL_USER</code> e <code>MYSQL_PASSWORD</code> in docker-compose.yml corrispondano esattamente a quelle del servizio <code>mysql</code>.
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Problema: mysql rimane in stato "health: starting" a lungo</div>
+      Al primo avvio MySQL esegue l'inizializzazione completa (create database, utente, tabelle): può richiedere 30–60 secondi.<br><br>
+      <strong>Soluzione:</strong> attendere. Monitorare con:
+      <pre style="margin:8px 0 4px;font-size:.82rem"><code><span class="cmd">docker compose logs -f mysql</span>
+<span class="cm"># Attendere il messaggio: "ready for connections"</span></code></pre>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Problema: "Communications link failure" nel log Java</div>
+      Il server non riesce a raggiungere MySQL. Le cause più comuni:
+      <ul style="margin-top:8px">
+        <li>La variabile <code>MYSQL_HOST</code> non è impostata o ha un valore errato (deve essere <code>mysql</code>, non <code>localhost</code>)</li>
+        <li>Il container MySQL non è in stato healthy: controllare con <code>docker compose ps</code></li>
+        <li>Il container server è stato avviato prima del healthy di MySQL: <code>docker compose restart server</code></li>
+      </ul>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Problema: la build Ant fallisce con "file not found: sqlite-jdbc.jar"</div>
+      Il comando <code>curl</code> per scaricare sqlite-jdbc è fallito (problema di rete durante la build).<br><br>
+      <strong>Soluzione:</strong> verificare la connessione internet e rieseguire:
+      <pre style="margin:8px 0 4px;font-size:.82rem"><code><span class="cmd">docker compose build --no-cache server</span></code></pre>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Problema: "port is already allocated" sulla porta 8080 o 3306</div>
+      Un altro processo sull'host usa già quella porta.<br><br>
+      <strong>Soluzione:</strong> modificare il mapping in docker-compose.yml (es. <code>"8081:8080"</code> per il server o <code>"3307:3306"</code> per MySQL), oppure fermare il processo che occupa la porta.
+    </div>
+
+    <div class="callout ok">
+      <div class="callout-title">Riepilogo del workflow completo</div>
+      <ol class="steps" style="margin-top:8px">
+        <li>Assicurarsi che Docker Desktop (o Docker Engine) sia in esecuzione.</li>
+        <li>Dalla cartella radice del progetto, eseguire <code>docker compose up -d --build</code>.</li>
+        <li>Attendere che <code>docker compose ps</code> mostri entrambi i container in stato <code>Up</code>.</li>
+        <li>Testare con <code>curl http://localhost:8080/</code>.</li>
+        <li>In caso di problemi, consultare i log con <code>docker compose logs -f</code>.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <p>ServerRest-Calcolatrice-DB-Docker &bull; TEPSIT Classe 5 &bull; Tutorial MySQL Container &bull; 2026</p>
+  </footer>
+
+</main>
+</body>
+</html>

@@ -21,24 +21,23 @@ import java.sql.Statement;
 public class DatabaseManager {
 
     // ══════════════════════════════════════════════════════════════
-    //  CONFIGURAZIONE — modifica qui per cambiare database
+    //  CONFIGURAZIONE — variabili d'ambiente con fallback ai default
     // ══════════════════════════════════════════════════════════════
 
-    /** Seleziona il database da usare. Valori possibili: DbType.SQLITE, DbType.MYSQL */
-    private static final DbType DB_SELEZIONATO = DbType.SQLITE;
+    /** Legge DB_TYPE dall'ambiente (SQLITE o MYSQL). Default: SQLITE. */
+    private static final DbType DB_SELEZIONATO = resolveDbType();
 
     // -- Parametri SQLite ------------------------------------------------
-    /** Percorso del file SQLite (relativo alla directory di lavoro) */
     private static final String SQLITE_URL = "jdbc:sqlite:calcolatrice.db";
 
-    // -- Parametri MySQL -------------------------------------------------
-    private static final String MYSQL_HOST     = "localhost";
-    private static final int    MYSQL_PORT     = 3306;
-    private static final String MYSQL_DATABASE = "calcolatrice_db";
-    private static final String MYSQL_USER     = "root";
-    private static final String MYSQL_PASSWORD = "password";
+    // -- Parametri MySQL — sovrascrivibili via variabili d'ambiente ------
+    private static final String MYSQL_HOST     = envOr("MYSQL_HOST",     "localhost");
+    private static final int    MYSQL_PORT     = Integer.parseInt(envOr("MYSQL_PORT", "3306"));
+    private static final String MYSQL_DATABASE = envOr("MYSQL_DATABASE", "calcolatrice_db");
+    private static final String MYSQL_USER     = envOr("MYSQL_USER",     "serverrest");
+    private static final String MYSQL_PASSWORD = envOr("MYSQL_PASSWORD", "calcolatrice");
 
-    /** URL JDBC completo per MySQL (non modificare questa riga) */
+    /** URL JDBC completo per MySQL */
     private static final String MYSQL_URL =
         "jdbc:mysql://" + MYSQL_HOST + ":" + MYSQL_PORT + "/" + MYSQL_DATABASE
         + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
@@ -95,6 +94,15 @@ public class DatabaseManager {
     // ══════════════════════════════════════════════════════════════
     //  Metodi privati
     // ══════════════════════════════════════════════════════════════
+
+    private static DbType resolveDbType() {
+        return "MYSQL".equalsIgnoreCase(System.getenv("DB_TYPE")) ? DbType.MYSQL : DbType.SQLITE;
+    }
+
+    private static String envOr(String name, String def) {
+        String v = System.getenv(name);
+        return (v != null && !v.isBlank()) ? v : def;
+    }
 
     /** Crea la connessione al database selezionato */
     private static Connection creaConnessione() throws SQLException {

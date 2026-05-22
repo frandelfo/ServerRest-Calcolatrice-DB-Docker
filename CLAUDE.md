@@ -28,7 +28,7 @@ java -cp "dist/ServerRest.jar:lib/gson-2.13.2.jar:lib/sqlite-jdbc.jar" serverres
 ## Test manuale degli endpoint
 
 ```bash
-# Calcolo via POST (salva in DB, risponde con id e timestamp)
+# Calcolo via POST → risponde 201 con id e timestamp
 curl -X POST http://localhost:8080/api/calcola/post \
      -H "Content-Type: application/json" \
      -d '{"operando1": 10, "operando2": 5, "operatore": "SOMMA"}'
@@ -36,7 +36,7 @@ curl -X POST http://localhost:8080/api/calcola/post \
 # Calcolo via GET
 curl "http://localhost:8080/api/calcola/get?operando1=10&operando2=5&operatore=SOMMA"
 
-# Lista di tutte le operazioni salvate
+# Lista di tutte le operazioni salvate (campo "totale" + array "operazioni")
 curl http://localhost:8080/api/operazioni
 
 # Singola operazione per id
@@ -45,6 +45,8 @@ curl http://localhost:8080/api/operazioni/1
 
 In alternativa aprire `src/serverrest/test.html` nel browser con il server attivo.
 
+Gli errori restituiscono sempre `{"errore": "...", "status": N}`.
+
 ## Architettura
 
 Il server usa `com.sun.net.httpserver.HttpServer` (JDK built-in). Nessun framework web esterno.
@@ -52,7 +54,7 @@ Il server usa `com.sun.net.httpserver.HttpServer` (JDK built-in). Nessun framewo
 ### Catena di dipendenze (costruita in `ServerRest.avviaServer()`)
 
 ```
-DatabaseManager (Singleton JDBC/SQLite)
+DatabaseManager (Singleton JDBC/SQLite o MySQL)
     └── OperazioneRepositoryImpl  implements OperazioneRepository
             └── CalcolatriceService   (logica di calcolo + delega persistenza)
                     ├── PostHandler
@@ -67,23 +69,29 @@ OperazioneRepository ──→ OperazioniHandler  (storico)
 | `serverrest` | Entry point, server, handlers HTTP, model (request/record) |
 | `serverrest.db` | Accesso dati: `DatabaseManager`, interfaccia `OperazioneRepository`, impl JDBC |
 
+### Modello dati
+
+- `OperazioneRequest` — body della richiesta in ingresso (`operando1`, `operando2`, `operatore`)
+- `OperazioneResponse` — risultato del calcolo; aggiunge `risultato` e `operazione` (stringa formattata, es. `"10,00 SOMMA 5,00 = 15,00"`)
+- `OperazioneRecord` — record persistito; compone `OperazioneResponse` nel campo `risposta` e aggiunge `id` e `timestamp` generati dal DB
+
 ### Flusso di una richiesta di calcolo
 
 1. `PostHandler` / `GetHandler` riceve la richiesta HTTP e valida i parametri
 2. Chiama `CalcolatriceService.calcola()` che esegue la matematica (`eseguiCalcolo()` privata)
-3. Il service chiama `OperazioneRepository.salva()` → INSERT nel DB SQLite
-4. Il record persistito (con `id` e `timestamp` generati dal DB) viene serializzato da Gson e restituito al client
+3. Il service chiama `OperazioneRepository.salva()` → INSERT nel DB
+4. Il record persistito (con `id` e `timestamp` generati dal DB) viene serializzato da Gson e restituito al client (HTTP 201)
 
 ### Flusso di consultazione storico (`OperazioniHandler`)
 
-- Path esattamente `/api/operazioni` → `repository.trovaTutte()` → lista JSON con campo `totale`
+- Path esattamente `/api/operazioni` → `repository.trovaTutte()` → `{"totale": N, "operazioni": [...]}`
 - Path `/api/operazioni/{id}` → `repository.trovaPerID(id)` → record singolo o 404
 
-### Endpoint completi
+### Endpoint
 
 | Metodo | Path | Descrizione |
 |--------|------|-------------|
-| POST | `/api/calcola/post` | Calcolo da body JSON |
+| POST | `/api/calcola/post` | Calcolo da body JSON (risposta 201) |
 | GET  | `/api/calcola/get`  | Calcolo da query string |
 | GET  | `/api/operazioni`   | Storico completo |
 | GET  | `/api/operazioni/{id}` | Operazione per id |
@@ -93,7 +101,41 @@ OperazioneRepository ──→ OperazioniHandler  (storico)
 
 Tutte le risposte hanno `Content-Type: application/json; charset=UTF-8` e `Access-Control-Allow-Origin: *`.
 
-### Schema SQL (`sql/create_tables.sql`)
+## Deploy con Docker
+
+```bash
+# Avvia entrambi i container (MySQL + server REST) in background
+docker compose up -d --build
+
+# Ferma e rimuove i container (il volume mysql_data persiste)
+docker compose down
+
+# Ferma e rimuove anche il volume (reset completo del DB)
+docker compose down -v
+
+# Log in tempo reale del server Java
+docker compose logs -f server
+```
+
+Il `docker-compose.yml` gestisce:
+- **mysql**: image `mysql:8.0`, dati persistiti in volume `mysql_data`, schema inizializzato da `sql/create_tables_mysql.sql` al primo avvio.
+- **server**: immagine buildata dal `Dockerfile` (multi-stage, Java 24 + ant), si avvia solo dopo che MySQL supera l'healthcheck.
+
+La comunicazione tra container avviene tramite la rete interna Docker: il server raggiunge MySQL all'hostname `mysql` (nome del servizio).
+
+Il `Dockerfile` scarica automaticamente `sqlite-jdbc` e `mysql-connector-j` durante la build, quindi non serve averli in `lib/` prima del build Docker.
+
+## Configurazione database
+
+Il database si seleziona cambiando `DB_SELEZIONATO` in `DatabaseManager.java`:
+
+```java
+private static final DbType DB_SELEZIONATO = DbType.SQLITE;  // o DbType.MYSQL
+```
+
+Per **MySQL**: avviare un server MySQL, eseguire `sql/create_tables_mysql.sql` per creare il database e la tabella, poi aggiornare `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD` nella stessa classe. Non è necessario copiare driver aggiuntivi in `lib/` perché il driver MySQL va aggiunto al classpath separatamente.
+
+### Schema SQL (SQLite — `sql/create_tables.sql`)
 
 ```sql
 CREATE TABLE IF NOT EXISTS operazioni (

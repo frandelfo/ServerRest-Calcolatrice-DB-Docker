@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+
+  # ── Database MySQL ────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: calcolatrice_db
+      MYSQL_USER: serverrest
+      MYSQL_PASSWORD: calcolatrice
+    volumes:
+      - ./sql/create_tables_mysql.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ── Server REST Java ──────────────────────────────────────────────────────
+  server:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DB_TYPE: MYSQL
+      MYSQL_HOST: mysql          # nome del servizio Docker, usato come hostname
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: calcolatrice_db
+      MYSQL_USER: serverrest
+      MYSQL_PASSWORD: calcolatrice
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  mysql_data:
