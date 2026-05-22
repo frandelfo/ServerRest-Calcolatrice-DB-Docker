@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial Server REST Java con GSON</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-left: 4px solid #3498db;
+        }
+        h3 {
+            color: #16a085;
+            margin-top: 20px;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e74c3c;
+        }
+        pre {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background-color: transparent;
+            color: #ecf0f1;
+            padding: 0;
+        }
+        .note {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .important {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .section {
+            background-color: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: white;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tutorial Server REST Java con GSON</h1>
+    <p><strong>Calcolatrice REST usando Java standard + libreria GSON per JSON</strong></p>
+
+    <div class="section">
+        <h2>1. Introduzione</h2>
+        <p>Questo tutorial mostra come creare un server REST usando le librerie standard di Java più la libreria <strong>GSON</strong> di Google per gestire JSON in modo professionale.</p>
+        
+        <div class="success">
+            <strong>Vantaggi di usare GSON:</strong>
+            <ul>
+                <li>✅ Parsing JSON automatico e affidabile</li>
+                <li>✅ Conversione automatica tra oggetti Java e JSON</li>
+                <li>✅ Gestione degli errori robusta</li>
+                <li>✅ Codice più pulito e manutenibile</li>
+                <li>✅ Standard di industria per applicazioni Java</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>2. Prerequisiti</h2>
+        <ul>
+            <li>Java Development Kit (JDK) 8 o superiore</li>
+            <li>Libreria GSON (scaricabile da Maven Central)</li>
+            <li>Un editor di testo o IDE</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>3. Download e Setup di GSON</h2>
+        
+        <h3>3.1 Download della Libreria</h3>
+        <p>Scarica GSON da uno dei seguenti link:</p>
+        <ul>
+            <li><strong>Maven Central:</strong> <a href="https://repo1.maven.org/maven2/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar" target="_blank">gson-2.10.1.jar</a></li>
+            <li><strong>GitHub Releases:</strong> <a href="https://github.com/google/gson/releases" target="_blank">Releases GSON</a></li>
+        </ul>
+        
+        <div class="note">
+            <strong>Nota:</strong> Salva il file <code>gson-2.10.1.jar</code> nella stessa cartella del tuo progetto per semplicità.
+        </div>
+
+        <h3>3.2 Struttura del Progetto</h3>
+        <pre><code>CalcolatriceREST/
+├── gson-2.10.1.jar                 (libreria GSON)
+├── CalcolatriceServer.java         (classe principale)
+├── CalcolatriceService.java        (logica di calcolo)
+├── PostHandler.java                (gestisce richieste POST)
+├── GetHandler.java                 (gestisce richieste GET)
+├── OperazioneRequest.java          (modello richiesta)
+└── OperazioneResponse.java         (modello risposta)</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>4. Implementazione del Codice</h2>
+        
+        <h3>4.1 OperazioneRequest.java</h3>
+        <p>Classe che rappresenta i dati della richiesta JSON.</p>
+        <pre><code>public class OperazioneRequest {
+    private double operando1;
+    private double operando2;
+    private String operatore;
+    
+    // Costruttore vuoto necessario per GSON
+    public OperazioneRequest() {
+    }
+    
+    // Costruttore con parametri
+    public OperazioneRequest(double operando1, double operando2, String operatore) {
+        this.operando1 = operando1;
+        this.operando2 = operando2;
+        this.operatore = operatore;
+    }
+    
+    // Getter
+    public double getOperando1() {
+        return operando1;
+    }
+    
+    public double getOperando2() {
+        return operando2;
+    }
+    
+    public String getOperatore() {
+        return operatore;
+    }
+    
+    // Setter
+    public void setOperando1(double operando1) {
+        this.operando1 = operando1;
+    }
+    
+    public void setOperando2(double operando2) {
+        this.operando2 = operando2;
+    }
+    
+    public void setOperatore(String operatore) {
+        this.operatore = operatore;
+    }
+    
+    @Override
+    public String toString() {
+        return "OperazioneRequest{" +
+                "operando1=" + operando1 +
+                ", operando2=" + operando2 +
+                ", operatore='" + operatore + '\'' +
+                '}';
+    }
+}</code></pre>
+
+        <h3>4.2 OperazioneResponse.java</h3>
+        <p>Classe che rappresenta la risposta JSON.</p>
+        <pre><code>public class OperazioneResponse {
+    private double operando1;
+    private double operando2;
+    private String operatore;
+    private double risultato;
+    private String operazione;
+    
+    // Costruttore vuoto necessario per GSON
+    public OperazioneResponse() {
+    }
+    
+    // Costruttore con parametri
+    public OperazioneResponse(double operando1, double operando2, 
+                             String operatore, double risultato) {
+        this.operando1 = operando1;
+        this.operando2 = operando2;
+        this.operatore = operatore;
+        this.risultato = risultato;
+        this.operazione = String.format("%.2f %s %.2f = %.2f", 
+            operando1, operatore, operando2, risultato);
+    }
+    
+    // Getter
+    public double getOperando1() {
+        return operando1;
+    }
+    
+    public double getOperando2() {
+        return operando2;
+    }
+    
+    public String getOperatore() {
+        return operatore;
+    }
+    
+    public double getRisultato() {
+        return risultato;
+    }
+    
+    public String getOperazione() {
+        return operazione;
+    }
+    
+    // Setter
+    public void setOperando1(double operando1) {
+        this.operando1 = operando1;
+    }
+    
+    public void setOperando2(double operando2) {
+        this.operando2 = operando2;
+    }
+    
+    public void setOperatore(String operatore) {
+        this.operatore = operatore;
+    }
+    
+    public void setRisultato(double risultato) {
+        this.risultato = risultato;
+    }
+    
+    public void setOperazione(String operazione) {
+        this.operazione = operazione;
+    }
+}</code></pre>
+
+        <h3>4.3 CalcolatriceService.java</h3>
+        <p>Servizio che esegue i calcoli matematici.</p>
+        <pre><code>public class CalcolatriceService {
+    
+    /**
+     * Esegue l'operazione matematica richiesta
+     * 
+     * @param operando1 Il primo operando
+     * @param operando2 Il secondo operando
+     * @param operatore L'operatore (SOMMA, SOTTRAZIONE, MOLTIPLICAZIONE, DIVISIONE)
+     * @return Il risultato dell'operazione
+     * @throws IllegalArgumentException se l'operatore non è valido o divisione per zero
+     */
+    public static double calcola(double operando1, double operando2, String operatore) 
+            throws IllegalArgumentException {
+        
+        if (operatore == null || operatore.trim().isEmpty()) {
+            throw new IllegalArgumentException("Operatore non può essere vuoto");
+        }
+        
+        // Convertiamo l'operatore in maiuscolo per gestire input case-insensitive
+        String op = operatore.toUpperCase().trim();
+        
+        switch (op) {
+            case "SOMMA":
+            case "+":
+                return operando1 + operando2;
+                
+            case "SOTTRAZIONE":
+            case "-":
+                return operando1 - operando2;
+                
+            case "MOLTIPLICAZIONE":
+            case "*":
+            case "X":
+                return operando1 * operando2;
+                
+            case "DIVISIONE":
+            case "/":
+                if (operando2 == 0) {
+                    throw new IllegalArgumentException("Divisione per zero non consentita");
+                }
+                return operando1 / operando2;
+                
+            default:
+                throw new IllegalArgumentException(
+                    "Operatore non valido: " + operatore + 
+                    ". Operatori consentiti: SOMMA, SOTTRAZIONE, MOLTIPLICAZIONE, DIVISIONE"
+                );
+        }
+    }
+}</code></pre>
+
+        <h3>4.4 PostHandler.java</h3>
+        <p>Handler per le richieste POST con parsing JSON tramite GSON.</p>
+        <pre><code>import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
+public class PostHandler implements HttpHandler {
+    
+    // Istanza Gson configurata per pretty printing
+    private final Gson gson = new GsonBuilder()
+            .setPrettyPrinting()
+            .create();
+    
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        
+        // Verifica che sia una richiesta POST
+        if (!exchange.getRequestMethod().equalsIgnoreCase("POST")) {
+            inviaErrore(exchange, 405, "Metodo non consentito. Usa POST");
+            return;
+        }
+        
+        try {
+            // Legge il body della richiesta
+            BufferedReader reader = new BufferedReader(
+                new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)
+            );
+            
+            // GSON converte automaticamente il JSON in oggetto Java
+            OperazioneRequest request = gson.fromJson(reader, OperazioneRequest.class);
+            reader.close();
+            
+            // Validazione
+            if (request == null) {
+                inviaErrore(exchange, 400, "Body della richiesta vuoto o non valido");
+                return;
+            }
+            
+            if (request.getOperatore() == null || request.getOperatore().trim().isEmpty()) {
+                inviaErrore(exchange, 400, "Operatore mancante o vuoto");
+                return;
+            }
+            
+            // Esegue il calcolo
+            double risultato = CalcolatriceService.calcola(
+                request.getOperando1(),
+                request.getOperando2(),
+                request.getOperatore()
+            );
+            
+            // Crea l'oggetto risposta
+            OperazioneResponse response = new OperazioneResponse(
+                request.getOperando1(),
+                request.getOperando2(),
+                request.getOperatore(),
+                risultato
+            );
+            
+            // GSON converte automaticamente l'oggetto Java in JSON
+            String jsonRisposta = gson.toJson(response);
+            
+            inviaRisposta(exchange, 200, jsonRisposta);
+            
+        } catch (JsonSyntaxException e) {
+            inviaErrore(exchange, 400, "JSON non valido: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            inviaErrore(exchange, 400, e.getMessage());
+        } catch (Exception e) {
+            inviaErrore(exchange, 500, "Errore interno del server: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Invia una risposta di successo
+     */
+    private void inviaRisposta(HttpExchange exchange, int codice, String jsonRisposta) 
+            throws IOException {
+        
+        exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        
+        byte[] bytes = jsonRisposta.getBytes(StandardCharsets.UTF_8);
+        exchange.sendResponseHeaders(codice, bytes.length);
+        
+        OutputStream os = exchange.getResponseBody();
+        os.write(bytes);
+        os.close();
+    }
+    
+    /**
+     * Invia una risposta di errore in formato JSON
+     */
+    private void inviaErrore(HttpExchange exchange, int codice, String messaggio) 
+            throws IOException {
+        
+        Map<String, Object> errore = new HashMap<>();
+        errore.put("errore", messaggio);
+        errore.put("status", codice);
+        
+        String jsonErrore = gson.toJson(errore);
+        inviaRisposta(exchange, codice, jsonErrore);
+    }
+}</code></pre>
+
+        <h3>4.5 GetHandler.java</h3>
+        <p>Handler per le richieste GET con risposta JSON tramite GSON.</p>
+        <pre><code>import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
+public class GetHandler implements HttpHandler {
+    
+    // Istanza Gson configurata per pretty printing
+    private final Gson gson = new GsonBuilder()
+            .setPrettyPrinting()
+            .create();
+    
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        
+        // Verifica che sia una richiesta GET
+        if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
+            inviaErrore(exchange, 405, "Metodo non consentito. Usa GET");
+            return;
+        }
+        
+        try {
+            // Estrae i parametri dalla query string
+            Map<String, String> parametri = estraiParametri(exchange.getRequestURI().getQuery());
+            
+            // Validazione parametri
+            if (!parametri.containsKey("operando1") || 
+                !parametri.containsKey("operando2") || 
+                !parametri.containsKey("operatore")) {
+                inviaErrore(exchange, 400, 
+                    "Parametri mancanti. Necessari: operando1, operando2, operatore");
+                return;
+            }
+            
+            // Parsing dei valori
+            double operando1 = Double.parseDouble(parametri.get("operando1"));
+            double operando2 = Double.parseDouble(parametri.get("operando2"));
+            String operatore = parametri.get("operatore");
+            
+            // Esegue il calcolo
+            double risultato = CalcolatriceService.calcola(operando1, operando2, operatore);
+            
+            // Crea l'oggetto risposta
+            OperazioneResponse response = new OperazioneResponse(
+                operando1,
+                operando2,
+                operatore,
+                risultato
+            );
+            
+            // GSON converte automaticamente l'oggetto Java in JSON
+            String jsonRisposta = gson.toJson(response);
+            
+            inviaRisposta(exchange, 200, jsonRisposta);
+            
+        } catch (NumberFormatException e) {
+            inviaErrore(exchange, 400, "Operandi non validi. Devono essere numeri");
+        } catch (IllegalArgumentException e) {
+            inviaErrore(exchange, 400, e.getMessage());
+        } catch (Exception e) {
+            inviaErrore(exchange, 500, "Errore interno del server: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Estrae i parametri dalla query string
+     */
+    private Map<String, String> estraiParametri(String query) {
+        Map<String, String> parametri = new HashMap<>();
+        
+        if (query == null || query.isEmpty()) {
+            return parametri;
+        }
+        
+        String[] coppie = query.split("&");
+        for (String coppia : coppie) {
+            String[] keyValue = coppia.split("=");
+            if (keyValue.length == 2) {
+                try {
+                    String chiave = URLDecoder.decode(keyValue[0], "UTF-8");
+                    String valore = URLDecoder.decode(keyValue[1], "UTF-8");
+                    parametri.put(chiave, valore);
+                } catch (Exception e) {
+                    // Ignora parametri malformati
+                }
+            }
+        }
+        
+        return parametri;
+    }
+    
+    /**
+     * Invia una risposta di successo
+     */
+    private void inviaRisposta(HttpExchange exchange, int codice, String jsonRisposta) 
+            throws IOException {
+        
+        exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        
+        byte[] bytes = jsonRisposta.getBytes(StandardCharsets.UTF_8);
+        exchange.sendResponseHeaders(codice, bytes.length);
+        
+        OutputStream os = exchange.getResponseBody();
+        os.write(bytes);
+        os.close();
+    }
+    
+    /**
+     * Invia una risposta di errore in formato JSON
+     */
+    private void inviaErrore(HttpExchange exchange, int codice, String messaggio) 
+            throws IOException {
+        
+        Map<String, Object> errore = new HashMap<>();
+        errore.put("errore", messaggio);
+        errore.put("status", codice);
+        
+        String jsonErrore = gson.toJson(errore);
+        inviaRisposta(exchange, codice, jsonErrore);
+    }
+}</code></pre>
+
+        <h3>4.6 CalcolatriceServer.java</h3>
+        <p>Classe principale che avvia il server HTTP.</p>
+        <pre><code>import com.sun.net.httpserver.HttpServer;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
+
+public class CalcolatriceServer {
+    
+    public static void main(String[] args) {
+        
+        // Configurazione porta (default 8080)
+        int porta = 8080;
+        if (args.length > 0) {
+            try {
+                porta = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                System.err.println("Porta non valida, uso porta default 8080");
+            }
+        }
+        
+        try {
+            // Crea il server sulla porta specificata
+            HttpServer server = HttpServer.create(new InetSocketAddress(porta), 0);
+            
+            // Registra gli handler per gli endpoint
+            server.createContext("/api/calcola/post", new PostHandler());
+            server.createContext("/api/calcola/get", new GetHandler());
+            
+            // Endpoint di benvenuto
+            server.createContext("/", exchange -> {
+                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                
+                Map<String, Object> info = new HashMap<>();
+                info.put("messaggio", "Benvenuto alla Calcolatrice REST API");
+                info.put("versione", "2.0.0");
+                info.put("tecnologia", "Java + GSON");
+                
+                Map<String, String> endpoints = new HashMap<>();
+                endpoints.put("POST", "/api/calcola/post");
+                endpoints.put("GET", "/api/calcola/get?operando1=X&operando2=Y&operatore=OP");
+                info.put("endpoints", endpoints);
+                
+                Map<String, String> operatori = new HashMap<>();
+                operatori.put("somma", "SOMMA o +");
+                operatori.put("sottrazione", "SOTTRAZIONE o -");
+                operatori.put("moltiplicazione", "MOLTIPLICAZIONE o * o X");
+                operatori.put("divisione", "DIVISIONE o /");
+                info.put("operatori_supportati", operatori);
+                
+                String jsonRisposta = gson.toJson(info);
+                
+                exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+                byte[] bytes = jsonRisposta.getBytes();
+                exchange.sendResponseHeaders(200, bytes.length);
+                exchange.getResponseBody().write(bytes);
+                exchange.getResponseBody().close();
+            });
+            
+            // Avvia il server
+            server.setExecutor(null); // Usa il default executor
+            server.start();
+            
+            // Messaggi di conferma
+            System.out.println("==============================================");
+            System.out.println("  Server REST con GSON avviato!");
+            System.out.println("==============================================");
+            System.out.println("Porta: " + porta);
+            System.out.println();
+            System.out.println("Endpoint disponibili:");
+            System.out.println("  - POST: http://localhost:" + porta + "/api/calcola/post");
+            System.out.println("  - GET:  http://localhost:" + porta + "/api/calcola/get");
+            System.out.println("  - Info: http://localhost:" + porta + "/");
+            System.out.println();
+            System.out.println("Operatori supportati:");
+            System.out.println("  SOMMA, SOTTRAZIONE, MOLTIPLICAZIONE, DIVISIONE");
+            System.out.println();
+            System.out.println("Premi Ctrl+C per fermare il server");
+            System.out.println("==============================================");
+            
+        } catch (IOException e) {
+            System.err.println("Errore nell'avvio del server: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>5. Compilazione ed Esecuzione</h2>
+        
+        <h3>5.1 Compilazione con GSON</h3>
+        <div class="important">
+            <strong>Importante:</strong> Quando compili ed esegui, devi includere il file GSON nel classpath!
+        </div>
+        
+        <h4>Su Linux/Mac:</h4>
+        <pre><code># Compila tutti i file includendo GSON nel classpath
+javac -cp .:gson-2.10.1.jar *.java
+
+# Esegui il server
+java -cp .:gson-2.10.1.jar CalcolatriceServer</code></pre>
+
+        <h4>Su Windows:</h4>
+        <pre><code># Compila tutti i file includendo GSON nel classpath
+javac -cp .;gson-2.10.1.jar *.java
+
+# Esegui il server
+java -cp .;gson-2.10.1.jar CalcolatriceServer</code></pre>
+
+        <h4>Esecuzione su porta personalizzata:</h4>
+        <pre><code># Linux/Mac
+java -cp .:gson-2.10.1.jar CalcolatriceServer 9090
+
+# Windows
+java -cp .;gson-2.10.1.jar CalcolatriceServer 9090</code></pre>
+
+        <div class="success">
+            <strong>Output atteso:</strong>
+            <pre><code>==============================================
+  Server REST con GSON avviato!
+==============================================
+Porta: 8080
+
+Endpoint disponibili:
+  - POST: http://localhost:8080/api/calcola/post
+  - GET:  http://localhost:8080/api/calcola/get
+  - Info: http://localhost:8080/
+
+Operatori supportati:
+  SOMMA, SOTTRAZIONE, MOLTIPLICAZIONE, DIVISIONE
+
+Premi Ctrl+C per fermare il server
+==============================================</code></pre>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>6. Test degli Endpoint</h2>
+        
+        <h3>6.1 Test Endpoint INFO</h3>
+        <p>Apri il browser e vai su:</p>
+        <pre><code>http://localhost:8080/</code></pre>
+        
+        <p><strong>Risposta (JSON formattato automaticamente da GSON):</strong></p>
+        <pre><code>{
+  "messaggio": "Benvenuto alla Calcolatrice REST API",
+  "versione": "2.0.0",
+  "tecnologia": "Java + GSON",
+  "endpoints": {
+    "POST": "/api/calcola/post",
+    "GET": "/api/calcola/get?operando1=X&operando2=Y&operatore=OP"
+  },
+  "operatori_supportati": {
+    "somma": "SOMMA o +",
+    "sottrazione": "SOTTRAZIONE o -",
+    "moltiplicazione": "MOLTIPLICAZIONE o * o X",
+    "divisione": "DIVISIONE o /"
+  }
+}</code></pre>
+
+        <h3>6.2 Test Endpoint POST</h3>
+        
+        <h4>Esempio 1: Somma</h4>
+        <pre><code>curl -X POST http://localhost:8080/api/calcola/post \
+  -H "Content-Type: application/json" \
+  -d '{
+    "operando1": 25.5,
+    "operando2": 14.3,
+    "operatore": "SOMMA"
+  }'</code></pre>
+        
+        <p><strong>Risposta (formattata da GSON):</strong></p>
+        <pre><code>{
+  "operando1": 25.5,
+  "operando2": 14.3,
+  "operatore": "SOMMA",
+  "risultato": 39.8,
+  "operazione": "25.50 SOMMA 14.30 = 39.80"
+}</code></pre>
+
+        <h4>Esempio 2: Moltiplicazione</h4>
+        <pre><code>curl -X POST http://localhost:8080/api/calcola/post \
+  -H "Content-Type: application/json" \
+  -d '{
+    "operando1": 7.5,
+    "operando2": 4,
+    "operatore": "MOLTIPLICAZIONE"
+  }'</code></pre>
+
+        <h4>Esempio 3: Divisione</h4>
+        <pre><code>curl -X POST http://localhost:8080/api/calcola/post \
+  -H "Content-Type: application/json" \
+  -d '{
+    "operando1": 100,
+    "operando2": 8,
+    "operatore": "DIVISIONE"
+  }'</code></pre>
+
+        <h4>Esempio 4: Usando simboli</h4>
+        <pre><code>curl -X POST http://localhost:8080/api/calcola/post \
+  -H "Content-Type: application/json" \
+  -d '{
+    "operando1": 50,
+    "operando2": 25,
+    "operatore": "+"
+  }'</code></pre>
+
+        <h3>6.3 Test Endpoint GET</h3>
+        
+        <h4>Esempio 1: Somma</h4>
+        <pre><code>curl "http://localhost:8080/api/calcola/get?operando1=15&operando2=10&operatore=SOMMA"</code></pre>
+
+        <h4>Esempio 2: Sottrazione</h4>
+        <pre><code>curl "http://localhost:8080/api/calcola/get?operando1=100&operando2=37&operatore=SOTTRAZIONE"</code></pre>
+
+        <h4>Esempio 3: Con simboli</h4>
+        <pre><code>curl "http://localhost:8080/api/calcola/get?operando1=12&operando2=3&operatore=*"</code></pre>
+
+        <h4>Esempio 4: Test da browser</h4>
+        <p>Apri il browser e digita:</p>
+        <pre><code>http://localhost:8080/api/calcola/get?operando1=50&operando2=5&operatore=DIVISIONE</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>7. Gestione degli Errori con GSON</h2>
+        
+        <h3>7.1 JSON Malformato</h3>
+        <pre><code>curl -X POST http://localhost:8080/api/calcola/post \
+  -H "Content-Type: application/json" \
+  -d '{"operando1": 10, "operando2": 5, operatore: "SOMMA"}'</code></pre>
+        
+        <p><strong>Risposta (HTTP 400):</strong></p>
+        <pre><code>{
+  "errore": "JSON non valido: Expected name at line 1 column 39 path $.operatore",
+  "status": 400
+}</code></pre>
+
+        <h3>7.2 Divisione per Zero</h3>
+        <pre><code>curl -X POST http://localhost:8080/api/calcola/post \
+  -H "Content-Type: application/json" \
+  -d '{
+    "operando1": 10,
+    "operando2": 0,
+    "operatore": "DIVISIONE"
+  }'</code></pre>
+        
+        <p><strong>Risposta (HTTP 400):</strong></p>
+        <pre><code>{
+  "errore": "Divisione per zero non consentita",
+  "status": 400
+}</code></pre>
+
+        <h3>7.3 Operatore Non Valido</h3>
+        <pre><code>curl "http://localhost:8080/api/calcola/get?operando1=10&operando2=5&operatore=POTENZA"</code></pre>
+        
+        <p><strong>Risposta (HTTP 400):</strong></p>
+        <pre><code>{
+  "errore": "Operatore non valido: POTENZA. Operatori consentiti: SOMMA, SOTTRAZIONE, MOLTIPLICAZIONE, DIVISIONE",
+  "status": 400
+}</code></pre>
+
+        <h3>7.4 Parametri Mancanti</h3>
+        <pre><code>curl "http://localhost:8080/api/calcola/get?operando1=10&operatore=SOMMA"</code></pre>
+        
+        <p><strong>Risposta (HTTP 400):</strong></p>
+        <pre><code>{
+  "errore": "Parametri mancanti. Necessari: operando1, operando2, operatore",
+  "status": 400
+}</code></pre>
+
+        <h3>7.5 Body Vuoto</h3>
+        <pre><code>curl -X POST http://localhost:8080/api/calcola/post \
+  -H "Content-Type: application/json" \
+  -d ''</code></pre>
+        
+        <p><strong>Risposta (HTTP 400):</strong></p>
+        <pre><code>{
+  "errore": "Body della richiesta vuoto o non valido",
+  "status": 400
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>8. Vantaggi di GSON</h2>
+        
+        <h3>8.1 Confronto: Parsing Manuale vs GSON</h3>
+        
+        <h4>Parsing Manuale (senza GSON):</h4>
+        <pre><code>// Codice complesso e fragile
+String pattern = "\"operando1\"\\s*:\\s*([0-9.]+)";
+Pattern p = Pattern.compile(pattern);
+Matcher m = p.matcher(json);
+if (m.find()) {
+    double operando1 = Double.parseDouble(m.group(1));
+}
+// Ripetere per ogni campo...</code></pre>
+
+        <h4>Con GSON:</h4>
+        <pre><code>// Una sola riga!
+OperazioneRequest request = gson.fromJson(reader, OperazioneRequest.class);</code></pre>
+
+        <h3>8.2 Funzionalità Avanzate di GSON</h3>
+        
+        <h4>Pretty Printing:</h4>
+        <pre><code>Gson gson = new GsonBuilder()
+    .setPrettyPrinting()  // JSON formattato
+    .create();</code></pre>
+
+        <h4>Gestione Date:</h4>
+        <pre><code>Gson gson = new GsonBuilder()
+    .setDateFormat("yyyy-MM-dd HH:mm:ss")
+    .create();</code></pre>
+
+        <h4>Escludere Campi Null:</h4>
+        <pre><code>Gson gson = new GsonBuilder()
+    .serializeNulls()  // Includi campi null
+    // oppure non chiamare questo metodo per escluderli
+    .create();</code></pre>
+
+        <h4>Personalizzazione con Annotazioni:</h4>
+        <pre><code>public class OperazioneRequest {
+    @SerializedName("op1")  // Il campo JSON si chiama "op1"
+    private double operando1;
+    
+    @Expose  // Solo i campi con @Expose vengono serializzati
+    private double operando2;
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>9. Creare un JAR Eseguibile</h2>
+        
+        <h3>9.1 Creare il Manifest</h3>
+        <p>Crea un file <code>manifest.txt</code>:</p>
+        <pre><code>Main-Class: CalcolatriceServer
+Class-Path: gson-2.10.1.jar
+</code></pre>
+        <p><strong>Importante:</strong> Lascia una riga vuota alla fine!</p>
+
+        <h3>9.2 Creare il JAR</h3>
+        <pre><code># Compila
+javac -cp .:gson-2.10.1.jar *.java    # Linux/Mac
+javac -cp .;gson-2.10.1.jar *.java    # Windows
+
+# Crea il JAR
+jar cfm calcolatrice.jar manifest.txt *.class</code></pre>
+
+        <h3>9.3 Eseguire il JAR</h3>
+        <pre><code># Assicurati che gson-2.10.1.jar sia nella stessa cartella
+java -jar calcolatrice.jar
+
+# Oppure su porta personalizzata
+java -jar calcolatrice.jar 9090</code></pre>
+
+        <div class="note">
+            <strong>Nota:</strong> Il file <code>gson-2.10.1.jar</code> deve essere nella stessa cartella del tuo JAR perché è specificato nel Class-Path del manifest.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>10. Test con Postman</h2>
+        
+        <h3>10.1 Test POST in Postman</h3>
+        <ol>
+            <li>Apri Postman</li>
+            <li>Seleziona metodo <strong>POST</strong></li>
+            <li>URL: <code>http://localhost:8080/api/calcola/post</code></li>
+            <li>Vai su <strong>Body</strong> → <strong>raw</strong> → seleziona <strong>JSON</strong></li>
+            <li>Inserisci il JSON:
+                <pre><code>{
+  "operando1": 42,
+  "operando2": 8,
+  "operatore": "DIVISIONE"
+}</code></pre>
+            </li>
+            <li>Clicca <strong>Send</strong></li>
+        </ol>
+
+        <h3>10.2 Test GET in Postman</h3>
+        <ol>
+            <li>Seleziona metodo <strong>GET</strong></li>
+            <li>URL: <code>http://localhost:8080/api/calcola/get</code></li>
+            <li>Vai su <strong>Params</strong></li>
+            <li>Aggiungi i parametri:
+                <ul>
+                    <li><code>operando1</code> = <code>25</code></li>
+                    <li><code>operando2</code> = <code>5</code></li>
+                    <li><code>operatore</code> = <code>MOLTIPLICAZIONE</code></li>
+                </ul>
+            </li>
+            <li>Clicca <strong>Send</strong></li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>11. Test con PowerShell (Windows)</h2>
+        
+        <h3>11.1 Test POST</h3>
+        <pre><code>$headers = @{
+    "Content-Type" = "application/json"
+}
+
+$body = @{
+    operando1 = 33.5
+    operando2 = 6.5
+    operatore = "SOMMA"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:8080/api/calcola/post" `
+    -Method POST `
+    -Headers $headers `
+    -Body $body</code></pre>
+
+        <h3>11.2 Test GET</h3>
+        <pre><code>Invoke-RestMethod -Uri "http://localhost:8080/api/calcola/get?operando1=100&operando2=4&operatore=DIVISIONE"</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>12. Pagina HTML di Test</h2>
+        <p>Crea un file <code>test.html</code> per testare l'API dal browser:</p>
+        <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Test Calcolatrice API&lt;/title&gt;
+    &lt;style&gt;
+        body { font-family: Arial; padding: 20px; }
+        input, select, button { margin: 10px 0; padding: 8px; }
+        #risultato { margin-top: 20px; padding: 15px; 
+                     background: #f0f0f0; border-radius: 5px; }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;Test Calcolatrice REST API&lt;/h1&gt;
+    
+    &lt;div&gt;
+        &lt;label&gt;Operando 1:&lt;/label&gt;
+        &lt;input type="number" id="op1" value="10" step="0.01"&gt;
+    &lt;/div&gt;
+    
+    &lt;div&gt;
+        &lt;label&gt;Operatore:&lt;/label&gt;
+        &lt;select id="operatore"&gt;
+            &lt;option value="SOMMA"&gt;SOMMA (+)&lt;/option&gt;
+            &lt;option value="SOTTRAZIONE"&gt;SOTTRAZIONE (-)&lt;/option&gt;
+            &lt;option value="MOLTIPLICAZIONE"&gt;MOLTIPLICAZIONE (*)&lt;/option&gt;
+            &lt;option value="DIVISIONE"&gt;DIVISIONE (/)&lt;/option&gt;
+        &lt;/select&gt;
+    &lt;/div&gt;
+    
+    &lt;div&gt;
+        &lt;label&gt;Operando 2:&lt;/label&gt;
+        &lt;input type="number" id="op2" value="5" step="0.01"&gt;
+    &lt;/div&gt;
+    
+    &lt;div&gt;
+        &lt;button onclick="calcolaPOST()"&gt;Calcola (POST)&lt;/button&gt;
+        &lt;button onclick="calcolaGET()"&gt;Calcola (GET)&lt;/button&gt;
+    &lt;/div&gt;
+    
+    &lt;div id="risultato"&gt;&lt;/div&gt;
+    
+    &lt;script&gt;
+        async function calcolaPOST() {
+            const data = {
+                operando1: parseFloat(document.getElementById('op1').value),
+                operando2: parseFloat(document.getElementById('op2').value),
+                operatore: document.getElementById('operatore').value
+            };
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/calcola/post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                mostraRisultato(result);
+            } catch (error) {
+                document.getElementById('risultato').innerHTML = 
+                    '&lt;strong&gt;Errore:&lt;/strong&gt; ' + error.message;
+            }
+        }
+        
+        async function calcolaGET() {
+            const op1 = document.getElementById('op1').value;
+            const op2 = document.getElementById('op2').value;
+            const operatore = document.getElementById('operatore').value;
+            
+            const url = `http://localhost:8080/api/calcola/get?operando1=${op1}&operando2=${op2}&operatore=${operatore}`;
+            
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+                mostraRisultato(result);
+            } catch (error) {
+                document.getElementById('risultato').innerHTML = 
+                    '&lt;strong&gt;Errore:&lt;/strong&gt; ' + error.message;
+            }
+        }
+        
+        function mostraRisultato(result) {
+            if (result.errore) {
+                document.getElementById('risultato').innerHTML = 
+                    '&lt;strong style="color:red"&gt;Errore:&lt;/strong&gt; ' + result.errore;
+            } else {
+                document.getElementById('risultato').innerHTML = 
+                    '&lt;strong&gt;Risultato:&lt;/strong&gt; ' + result.operazione + 
+                    '&lt;br&gt;&lt;pre&gt;' + JSON.stringify(result, null, 2) + '&lt;/pre&gt;';
+            }
+        }
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+        
+        <p>Apri il file nel browser e testa entrambi gli endpoint!</p>
+    </div>
+
+    <div class="section">
+        <h2>13. Esercizi Proposti</h2>
+        <div class="note">
+            <ol>
+                <li>Aggiungi un campo <code>timestamp</code> nella risposta che indica quando è stata eseguita l'operazione</li>
+                <li>Implementa un endpoint <code>/api/storico</code> che restituisce le ultime 10 operazioni eseguite</li>
+                <li>Aggiungi un'operazione POTENZA (elevamento a potenza)</li>
+                <li>Implementa un endpoint <code>/api/batch</code> che accetta un array di operazioni e restituisce tutti i risultati</li>
+                <li>Aggiungi logging delle richieste in un file con data/ora e operazione eseguita</li>
+                <li>Crea un endpoint <code>/api/stats</code> che mostra statistiche (numero totale operazioni, operatore più usato, ecc.)</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>14. Troubleshooting</h2>
+        
+        <h3>Problema: ClassNotFoundException per com.google.gson.Gson</h3>
+        <p><strong>Soluzione:</strong> Hai dimenticato di includere GSON nel classpath:</p>
+        <pre><code># Assicurati di compilare ed eseguire con:
+javac -cp .:gson-2.10.1.jar *.java
+java -cp .:gson-2.10.1.jar CalcolatriceServer</code></pre>
+
+        <h3>Problema: "Address already in use"</h3>
+        <p><strong>Soluzione:</strong> La porta 8080 è già occupata. Usa una porta diversa:</p>
+        <pre><code>java -cp .:gson-2.10.1.jar CalcolatriceServer 9090</code></pre>
+
+        <h3>Problema: JSON non formattato</h3>
+        <p><strong>Soluzione:</strong> Usa <code>GsonBuilder().setPrettyPrinting()</code> come nel codice fornito.</p>
+
+        <h3>Problema: Caratteri speciali non visualizzati</h3>
+        <p><strong>Soluzione:</strong> Assicurati di usare UTF-8 ovunque:</p>
+        <pre><code>StandardCharsets.UTF_8
+exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>15. Risorse Utili</h2>
+        <ul>
+            <li><a href="https://github.com/google/gson" target="_blank">GSON su GitHub</a></li>
+            <li><a href="https://github.com/google/gson/blob/master/UserGuide.md" target="_blank">GSON User Guide</a></li>
+            <li><a href="https://repo1.maven.org/maven2/com/google/code/gson/gson/" target="_blank">Maven Central - GSON Downloads</a></li>
+            <li><a href="https://docs.oracle.com/javase/8/docs/jre/api/net/httpserver/spec/com/sun/net/httpserver/package-summary.html" target="_blank">HttpServer Documentation</a></li>
+        </ul>
+    </div>
+
+    <div class="success">
+        <h2>Conclusione</h2>
+        <p>Hai imparato a creare un server REST professionale usando Java standard + GSON! Questa combinazione offre:</p>
+        <ul>
+            <li>✅ Parsing JSON robusto e automatico</li>
+            <li>✅ Codice più pulito e manutenibile</li>
+            <li>✅ Gestione errori migliorata</li>
+            <li>✅ Standard di industria per JSON in Java</li>
+            <li>✅ Facilità di estensione e personalizzazione</li>
+        </ul>
+        <p><strong>GSON rende il codice molto più professionale e affidabile! 🚀</strong></p>
+    </div>
+
+    <footer style="text-align: center; margin-top: 50px; padding: 20px; background-color: #34495e; color: white;">
+        <p>Tutorial Java REST con GSON</p>
+        <p>Java + HttpServer + GSON = Semplicità e Potenza!</p>
+    </footer>
+</body>
+</html>

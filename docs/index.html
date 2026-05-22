@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Docs — ServerRest Calcolatrice DB</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f7fa;
+      color: #1a1a2e;
+      min-height: 100vh;
+      padding: 2rem 1rem 4rem;
+    }
+
+    header {
+      max-width: 760px;
+      margin: 0 auto 2.5rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+      color: #6b7280;
+    }
+
+    .grid {
+      max-width: 760px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 1.25rem 1.4rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .card:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,0.09);
+      transform: translateY(-2px);
+    }
+
+    .icon {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+    }
+
+    .icon-pdf  { background: #fee2e2; }
+    .icon-mp4  { background: #dbeafe; }
+    .icon-png  { background: #d1fae5; }
+    .icon-html { background: #ede9fe; }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #111827;
+    }
+
+    .card-meta {
+      margin-top: 0.25rem;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 0.45rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2em 0.6em;
+      border-radius: 999px;
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+
+    footer {
+      max-width: 760px;
+      margin: 3rem auto 0;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #d1d5db;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>📂 Documentazione</h1>
+    <p>ServerRest — Calcolatrice DB &nbsp;·&nbsp; Materiali del progetto</p>
+  </header>
+
+  <div class="grid">
+
+    <a class="card" href="JDBC_&_Repository_Pattern.mp4" target="_blank">
+      <div class="icon icon-mp4">🎬</div>
+      <div class="card-body">
+        <div class="card-title">JDBC &amp; Repository Pattern</div>
+        <div class="card-meta">Video tutorial</div>
+        <span class="badge">MP4</span>
+      </div>
+    </a>
+
+    <a class="card" href="JDBC_&_Repository_Pattern.png" target="_blank">
+      <div class="icon icon-png">🖼️</div>
+      <div class="card-body">
+        <div class="card-title">JDBC &amp; Repository Pattern</div>
+        <div class="card-meta">Schema / Diagramma</div>
+        <span class="badge">PNG</span>
+      </div>
+    </a>
+
+    <a class="card" href="JDBC + Repository Pattern — Tutorial Java.pdf" target="_blank">
+      <div class="icon icon-pdf">📄</div>
+      <div class="card-body">
+        <div class="card-title">JDBC + Repository Pattern — Tutorial Java</div>
+        <div class="card-meta">Documento PDF</div>
+        <span class="badge">PDF</span>
+      </div>
+    </a>
+
+    <a class="card" href="jdbc-tutorial.html" target="_blank">
+      <div class="icon icon-html">🌐</div>
+      <div class="card-body">
+        <div class="card-title">JDBC + Repository Pattern — Tutorial Java</div>
+        <div class="card-meta">Pagina HTML</div>
+        <span class="badge">HTML</span>
+      </div>
+    </a>
+
+    <a class="card" href="tutorial_persistenza_jdbc_sqlite.html" target="_blank">
+      <div class="icon icon-html">🌐</div>
+      <div class="card-body">
+        <div class="card-title">Tutorial Persistenza JDBC + SQLite</div>
+        <div class="card-meta">Pagina HTML</div>
+        <span class="badge">HTML</span>
+      </div>
+    </a>
+
+    <a class="card" href="tutorial_rest_java_gson.html" target="_blank">
+      <div class="icon icon-html">🌐</div>
+      <div class="card-body">
+        <div class="card-title">Tutorial REST Java + Gson</div>
+        <div class="card-meta">Pagina HTML</div>
+        <span class="badge">HTML</span>
+      </div>
+    </a>
+
+  </div>
+
+  <footer>
+    &copy; 2026 ServerRest-Calcolatrice-DB
+  </footer>
+
+</body>
+</html>

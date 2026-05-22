@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial Persistenza Dati — JDBC, SQLite, MySQL e Repository Pattern</title>
+    <style>
+        /* ── Tema chiaro ── */
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.7;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px 20px 60px;
+            background-color: #f0f4f8;
+            color: #2d3748;
+        }
+
+        /* ── Intestazioni ── */
+        h1 {
+            color: #1a365d;
+            border-bottom: 3px solid #2b6cb0;
+            padding-bottom: 12px;
+            margin-bottom: 6px;
+            font-size: 2rem;
+        }
+        h1 .subtitle {
+            display: block;
+            font-size: 1rem;
+            font-weight: 400;
+            color: #4a5568;
+            margin-top: 4px;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 36px;
+            background-color: #ebf4ff;
+            padding: 10px 14px;
+            border-left: 5px solid #2b6cb0;
+            border-radius: 0 4px 4px 0;
+        }
+        h3 {
+            color: #276749;
+            margin-top: 24px;
+            font-size: 1.05rem;
+        }
+        h4 {
+            color: #553c9a;
+            margin-top: 18px;
+            font-size: 0.97rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* ── Sezioni card ── */
+        .section {
+            background-color: #ffffff;
+            padding: 24px 28px;
+            margin: 24px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        /* ── Callout box ── */
+        .note {
+            background-color: #fffbeb;
+            border-left: 5px solid #f6ad55;
+            padding: 14px 18px;
+            margin: 18px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        .important {
+            background-color: #fff5f5;
+            border-left: 5px solid #fc8181;
+            padding: 14px 18px;
+            margin: 18px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        .success {
+            background-color: #f0fff4;
+            border-left: 5px solid #48bb78;
+            padding: 14px 18px;
+            margin: 18px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        .info {
+            background-color: #ebf8ff;
+            border-left: 5px solid #4299e1;
+            padding: 14px 18px;
+            margin: 18px 0;
+            border-radius: 0 6px 6px 0;
+        }
+
+        /* ── Codice ── */
+        code {
+            background-color: #edf2f7;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+            font-size: 0.88em;
+            color: #c53030;
+        }
+        pre {
+            background-color: #1a202c;
+            color: #e2e8f0;
+            padding: 18px 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            border-left: 5px solid #2b6cb0;
+            font-size: 0.88em;
+            line-height: 1.6;
+        }
+        pre code {
+            background-color: transparent;
+            color: #e2e8f0;
+            padding: 0;
+            font-size: inherit;
+        }
+        /* Sintassi leggera */
+        pre .kw  { color: #90cdf4; }   /* keyword */
+        pre .cl  { color: #68d391; }   /* class / type */
+        pre .st  { color: #fbd38d; }   /* string */
+        pre .cm  { color: #718096; font-style: italic; } /* comment */
+        pre .an  { color: #d6bcfa; }   /* annotation */
+
+        /* ── Schema / diagramma ── */
+        .diagram {
+            background-color: #f7fafc;
+            border: 2px dashed #bee3f8;
+            border-radius: 8px;
+            padding: 20px 24px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+            font-size: 0.87em;
+            color: #2d3748;
+            line-height: 1.9;
+            overflow-x: auto;
+        }
+
+        /* ── Tabelle ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.93em;
+        }
+        th {
+            background-color: #2b6cb0;
+            color: #ffffff;
+            padding: 11px 14px;
+            text-align: left;
+        }
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 10px 14px;
+        }
+        tr:nth-child(even) td { background-color: #f7fafc; }
+        tr:hover td { background-color: #ebf8ff; }
+
+        /* ── Badge colore per ruoli ── */
+        .badge {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 0.78em;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+        .badge-blue   { background-color: #bee3f8; color: #1a365d; }
+        .badge-green  { background-color: #c6f6d5; color: #1c4532; }
+        .badge-purple { background-color: #e9d8fd; color: #44337a; }
+        .badge-orange { background-color: #feebc8; color: #7b341e; }
+
+        /* ── Navigazione interna ── */
+        .toc {
+            background-color: #ebf8ff;
+            border: 1px solid #bee3f8;
+            border-radius: 8px;
+            padding: 18px 24px;
+            margin: 20px 0;
+        }
+        .toc ol { margin: 8px 0 0; padding-left: 22px; }
+        .toc li { margin: 4px 0; }
+        .toc a  { color: #2b6cb0; text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+
+        /* ── Separatore ── */
+        hr { border: none; border-top: 1px solid #e2e8f0; margin: 28px 0; }
+    </style>
+</head>
+<body>
+
+<h1>
+    Persistenza Dati con JDBC, SQLite e MySQL
+    <span class="subtitle">Repository Pattern &mdash; Calcolatrice REST &mdash; Java 24</span>
+</h1>
+
+<!-- Indice -->
+<div class="toc">
+    <strong>Indice</strong>
+    <ol>
+        <li><a href="#intro">Introduzione</a></li>
+        <li><a href="#tecnologie">Tecnologie: JDBC, SQLite e MySQL</a></li>
+        <li><a href="#schema">Schema del database</a></li>
+        <li><a href="#pattern">Il Repository Pattern</a></li>
+        <li><a href="#dbmanager">DatabaseManager — gestione della connessione (multi-DB)</a></li>
+        <li><a href="#interfaccia">OperazioneRepository — l'interfaccia</a></li>
+        <li><a href="#impl">OperazioneRepositoryImpl — l'implementazione JDBC</a></li>
+        <li><a href="#record">OperazioneRecord — entità con composizione</a></li>
+        <li><a href="#service">CalcolatriceService — integrazione col repository</a></li>
+        <li><a href="#endpoints">Nuovi endpoint di consultazione</a></li>
+        <li><a href="#wiring">Collegamento delle dipendenze in ServerRest</a></li>
+        <li><a href="#flusso">Flusso completo di una richiesta</a></li>
+        <li><a href="#test">Test con curl</a></li>
+        <li><a href="#mysql">MySQL — setup e migrazione da SQLite</a></li>
+    </ol>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="intro">
+    <h2>1. Introduzione</h2>
+
+    <p>Nella versione precedente della Calcolatrice REST ogni risposta veniva calcolata e restituita al client senza essere memorizzata. Una volta chiusa la connessione, il risultato andava perso per sempre.</p>
+
+    <p>La <strong>persistenza dei dati</strong> risolve questo problema: ogni operazione viene salvata in un database in modo permanente, permettendo di:</p>
+    <ul>
+        <li>Recuperare lo storico di tutte le operazioni eseguite</li>
+        <li>Cercare un'operazione specifica tramite il suo identificativo</li>
+        <li>Analizzare i dati in un secondo momento</li>
+    </ul>
+
+    <div class="success">
+        <strong>Obiettivi di questo tutorial:</strong>
+        <ul>
+            <li>✅ Capire cos'è JDBC e come si usa per accedere a un database</li>
+            <li>✅ Capire cos'è SQLite e perché è adatto a progetti embedded</li>
+            <li>✅ Imparare il <strong>Repository Pattern</strong> per separare la logica di accesso ai dati dal resto dell'applicazione</li>
+            <li>✅ Vedere come si implementa la composizione tra classi Java</li>
+            <li>✅ Aggiungere nuovi endpoint REST per consultare lo storico</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="tecnologie">
+    <h2>2. Tecnologie: JDBC, SQLite e MySQL</h2>
+
+    <h3>2.1 JDBC — Java Database Connectivity</h3>
+
+    <p><strong>JDBC</strong> è l'API standard di Java per comunicare con i database relazionali. Fa parte del JDK: non serve scaricare nulla di aggiuntivo per usarla.</p>
+    <p>Definisce un insieme di <strong>interfacce</strong> (come <code>Connection</code>, <code>Statement</code>, <code>ResultSet</code>) che ogni produttore di database implementa in un proprio <strong>driver JDBC</strong>.</p>
+
+    <div style="margin:18px 0;overflow-x:auto">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 412" width="100%" style="max-width:560px;display:block;margin:0 auto">
+        <defs>
+          <marker id="arr1" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0,10 3.5,0 7" fill="#4a5568"/>
+          </marker>
+        </defs>
+        <!-- Applicazione Java -->
+        <rect x="155" y="10" width="250" height="46" rx="8" fill="#bee3f8" stroke="#2b6cb0" stroke-width="2"/>
+        <text x="280" y="39" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="14" font-weight="600" fill="#1a365d">Applicazione Java</text>
+        <!-- Arrow 1 -->
+        <line x1="280" y1="56" x2="280" y2="93" stroke="#4a5568" stroke-width="2" marker-end="url(#arr1)"/>
+        <text x="290" y="72" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" fill="#718096" font-style="italic">usa le interfacce standard JDBC</text>
+        <!-- java.sql.* -->
+        <rect x="80" y="100" width="400" height="96" rx="8" fill="#ebf8ff" stroke="#2b6cb0" stroke-width="2"/>
+        <text x="280" y="124" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="14" font-weight="700" fill="#2b6cb0">java.sql.*</text>
+        <text x="280" y="144" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#718096">(incluso nel JDK)</text>
+        <text x="280" y="180" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="12" fill="#2d3748">Connection · PreparedStatement · ResultSet</text>
+        <!-- Arrow 2 -->
+        <line x1="280" y1="196" x2="280" y2="233" stroke="#4a5568" stroke-width="2" marker-end="url(#arr1)"/>
+        <text x="290" y="219" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" fill="#718096" font-style="italic">implementato da</text>
+        <!-- Driver JDBC -->
+        <rect x="80" y="240" width="400" height="80" rx="8" fill="#fefcbf" stroke="#d69e2e" stroke-width="2"/>
+        <text x="280" y="264" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="14" font-weight="600" fill="#744210">Driver JDBC specifico</text>
+        <text x="280" y="284" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="11" fill="#92400e">sqlite-jdbc.jar · mysql-connector.jar · …</text>
+        <text x="280" y="304" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="11" fill="#92400e">org.sqlite.JDBC</text>
+        <!-- Arrow 3 -->
+        <line x1="280" y1="320" x2="280" y2="354" stroke="#4a5568" stroke-width="2" marker-end="url(#arr1)"/>
+        <!-- Database fisico -->
+        <rect x="155" y="360" width="250" height="46" rx="8" fill="#c6f6d5" stroke="#276749" stroke-width="2"/>
+        <text x="280" y="379" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="13" font-weight="600" fill="#1c4532">Database fisico</text>
+        <text x="280" y="396" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="12" fill="#276749">calcolatrice.db</text>
+      </svg>
+    </div>
+
+    <p>Grazie a questa architettura, se in futuro si volesse passare da SQLite a MySQL basterebbe <em>cambiare solo il driver e la stringa di connessione</em>, senza toccare la logica applicativa.</p>
+
+    <h4>Classi JDBC principali</h4>
+    <table>
+        <tr>
+            <th>Interfaccia</th>
+            <th>Responsabilità</th>
+            <th>Esempio di utilizzo</th>
+        </tr>
+        <tr>
+            <td><code>DriverManager</code></td>
+            <td>Crea la connessione al database a partire dalla URL JDBC</td>
+            <td><code>DriverManager.getConnection(url)</code></td>
+        </tr>
+        <tr>
+            <td><code>Connection</code></td>
+            <td>Rappresenta una sessione aperta verso il DB</td>
+            <td><code>conn.prepareStatement(sql)</code></td>
+        </tr>
+        <tr>
+            <td><code>PreparedStatement</code></td>
+            <td>Esegue query parametrizzate (protegge da SQL injection)</td>
+            <td><code>stmt.setDouble(1, valore)</code></td>
+        </tr>
+        <tr>
+            <td><code>Statement</code></td>
+            <td>Esegue query statiche (senza parametri)</td>
+            <td><code>stmt.executeQuery(sql)</code></td>
+        </tr>
+        <tr>
+            <td><code>ResultSet</code></td>
+            <td>Contiene le righe restituite da una SELECT</td>
+            <td><code>rs.getInt("id")</code></td>
+        </tr>
+    </table>
+
+    <hr>
+
+    <h3>2.2 SQLite</h3>
+
+    <p><strong>SQLite</strong> è un database relazionale <em>embedded</em>: non richiede un processo server separato. L'intero database è contenuto in un singolo file (<code>calcolatrice.db</code>) che viene creato automaticamente nella directory di lavoro.</p>
+
+    <div class="success">
+        <strong>Perché SQLite è adatto a questo progetto:</strong>
+        <ul>
+            <li>✅ Nessuna installazione richiesta — basta aggiungere il JAR del driver</li>
+            <li>✅ Il database è un file portatile: si può copiare, condividere, ispezionare</li>
+            <li>✅ Supporta SQL standard (CREATE TABLE, INSERT, SELECT, …)</li>
+            <li>✅ Ideale per prototipi, applicazioni desktop e progetti scolastici</li>
+        </ul>
+    </div>
+
+    <h4>URL di connessione JDBC per SQLite</h4>
+    <pre><code><span class="cm">// Il file calcolatrice.db viene creato se non esiste</span>
+String DB_URL = <span class="st">"jdbc:sqlite:calcolatrice.db"</span>;
+
+Connection conn = DriverManager.getConnection(DB_URL);</code></pre>
+
+    <div class="note">
+        <strong>Driver da scaricare:</strong> il driver JDBC per SQLite non è incluso nel JDK.
+        Scarica <code>sqlite-jdbc.jar</code> da
+        <a href="https://github.com/xerial/sqlite-jdbc/releases" target="_blank">github.com/xerial/sqlite-jdbc/releases</a>
+        e copialo nella cartella <code>lib/</code> del progetto.
+    </div>
+
+    <hr>
+
+    <h3>2.3 MySQL</h3>
+
+    <p><strong>MySQL</strong> è un DBMS relazionale client-server tra i più diffusi al mondo. A differenza di SQLite, richiede un processo server in esecuzione separato, ma offre in cambio prestazioni superiori, supporto alla concorrenza multi-utente e funzionalità avanzate come stored procedure, viste e replicazione.</p>
+
+    <div class="info">
+        <strong>Quando preferire MySQL a SQLite:</strong>
+        <ul>
+            <li>Applicazioni con molti utenti/richieste concorrenti</li>
+            <li>Ambienti di produzione o deploy su server</li>
+            <li>Necessità di interfacciarsi con altri tool (es. phpMyAdmin, Adminer)</li>
+            <li>Dati condivisi tra più applicazioni o processi</li>
+        </ul>
+    </div>
+
+    <h4>URL di connessione JDBC per MySQL</h4>
+    <pre><code><span class="cm">// Formato: jdbc:mysql://host:porta/nomeDatabase?parametri</span>
+String MYSQL_URL =
+    <span class="st">"jdbc:mysql://localhost:3306/calcolatrice_db"</span>
+    + <span class="st">"?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC"</span>;
+
+<span class="cm">// MySQL richiede utente e password</span>
+Connection conn = DriverManager.getConnection(MYSQL_URL, <span class="st">"root"</span>, <span class="st">"password"</span>);</code></pre>
+
+    <table>
+        <tr><th>Parametro URL</th><th>Significato</th></tr>
+        <tr><td><code>useSSL=false</code></td><td>Disabilita SSL (utile in sviluppo locale)</td></tr>
+        <tr><td><code>allowPublicKeyRetrieval=true</code></td><td>Necessario con autenticazione caching_sha2_password (MySQL 8+)</td></tr>
+        <tr><td><code>serverTimezone=UTC</code></td><td>Evita errori di fuso orario tra JVM e server MySQL</td></tr>
+    </table>
+
+    <div class="note">
+        <strong>Driver da scaricare:</strong> il driver JDBC per MySQL non è incluso nel JDK.
+        Scarica <code>mysql-connector-j-x.x.x.jar</code> da
+        <a href="https://dev.mysql.com/downloads/connector/j/" target="_blank">dev.mysql.com/downloads/connector/j/</a>
+        e copialo nella cartella <code>lib/</code> del progetto. Rinominalo <code>mysql-connector-j.jar</code>
+        per semplicità.
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="schema">
+    <h2>3. Schema del database</h2>
+
+    <p>Il database contiene una sola tabella, <code>operazioni</code>, che memorizza tutti i dati relativi a ciascun calcolo eseguito dalla calcolatrice.</p>
+
+    <h3>3.1 Script SQL — <code>sql/create_tables.sql</code></h3>
+    <pre><code><span class="cm">-- Crea la tabella se non esiste già (istruzione idempotente)</span>
+CREATE TABLE IF NOT EXISTS operazioni (
+    id        INTEGER     PRIMARY KEY AUTOINCREMENT,
+    operando1 REAL        NOT NULL,
+    operando2 REAL        NOT NULL,
+    operatore VARCHAR(20) NOT NULL,
+    risultato REAL        NOT NULL,
+    timestamp DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+<span class="cm">-- Indice per migliorare la velocità delle ricerche per data</span>
+CREATE INDEX IF NOT EXISTS idx_operazioni_timestamp
+    ON operazioni (timestamp DESC);</code></pre>
+
+    <h3>3.2 Descrizione delle colonne</h3>
+    <table>
+        <tr>
+            <th>Colonna</th>
+            <th>Tipo SQL</th>
+            <th>Descrizione</th>
+        </tr>
+        <tr>
+            <td><code>id</code></td>
+            <td><code>INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
+            <td>Identificativo univoco, generato automaticamente dal database per ogni INSERT</td>
+        </tr>
+        <tr>
+            <td><code>operando1</code></td>
+            <td><code>REAL NOT NULL</code></td>
+            <td>Primo numero dell'operazione (tipo decimale)</td>
+        </tr>
+        <tr>
+            <td><code>operando2</code></td>
+            <td><code>REAL NOT NULL</code></td>
+            <td>Secondo numero dell'operazione</td>
+        </tr>
+        <tr>
+            <td><code>operatore</code></td>
+            <td><code>VARCHAR(20) NOT NULL</code></td>
+            <td>Stringa dell'operatore: SOMMA, SOTTRAZIONE, MOLTIPLICAZIONE, DIVISIONE</td>
+        </tr>
+        <tr>
+            <td><code>risultato</code></td>
+            <td><code>REAL NOT NULL</code></td>
+            <td>Valore numerico del risultato del calcolo</td>
+        </tr>
+        <tr>
+            <td><code>timestamp</code></td>
+            <td><code>DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP</code></td>
+            <td>Data e ora dell'operazione; il valore di default è impostato dal DB stesso al momento dell'inserimento</td>
+        </tr>
+    </table>
+
+    <div class="info">
+        <strong>DEFAULT CURRENT_TIMESTAMP</strong> significa che se non forniamo esplicitamente un valore per la colonna <code>timestamp</code>, il database inserisce automaticamente la data e l'ora corrente. Questo permette all'applicazione Java di non preoccuparsi di calcolare l'orario.
+    </div>
+
+    <h3>3.3 Differenze DDL tra SQLite e MySQL</h3>
+    <p>Pur avendo lo stesso schema logico, i due database usano sintassi DDL leggermente diverse. La tabella seguente mostra le differenze colonna per colonna.</p>
+
+    <table>
+        <tr>
+            <th>Elemento</th>
+            <th>SQLite</th>
+            <th>MySQL</th>
+        </tr>
+        <tr>
+            <td>Chiave primaria auto-incrementale</td>
+            <td><code>INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
+            <td><code>INT PRIMARY KEY AUTO_INCREMENT</code></td>
+        </tr>
+        <tr>
+            <td>Tipo numero decimale</td>
+            <td><code>REAL</code></td>
+            <td><code>DOUBLE</code></td>
+        </tr>
+        <tr>
+            <td>Opzioni motore / charset</td>
+            <td>Non necessarie</td>
+            <td><code>ENGINE=InnoDB DEFAULT CHARSET=utf8mb4</code></td>
+        </tr>
+        <tr>
+            <td>Creazione database</td>
+            <td>Automatica (file sul filesystem)</td>
+            <td>Manuale: <code>CREATE DATABASE calcolatrice_db;</code></td>
+        </tr>
+    </table>
+
+    <h3>3.4 Script SQL per MySQL — <code>sql/create_tables_mysql.sql</code></h3>
+    <pre><code><span class="cm">-- Crea il database (da eseguire una sola volta come amministratore)</span>
+CREATE DATABASE IF NOT EXISTS calcolatrice_db
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
+USE calcolatrice_db;
+
+<span class="cm">-- Tabella delle operazioni (sintassi MySQL)</span>
+CREATE TABLE IF NOT EXISTS operazioni (
+    id        INT         PRIMARY KEY AUTO_INCREMENT,
+    operando1 DOUBLE      NOT NULL,
+    operando2 DOUBLE      NOT NULL,
+    operatore VARCHAR(20) NOT NULL,
+    risultato DOUBLE      NOT NULL,
+    timestamp DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+<span class="cm">-- Indice per le ricerche ordinate per data</span>
+CREATE INDEX IF NOT EXISTS idx_operazioni_timestamp
+    ON operazioni (timestamp DESC);</code></pre>
+
+    <div class="note">
+        <strong>InnoDB</strong> è il motore di storage predefinito di MySQL. Supporta le transazioni ACID e i vincoli di integrità referenziale (chiavi esterne), caratteristiche fondamentali per applicazioni affidabili.<br><br>
+        <strong>utf8mb4</strong> è la codifica raccomandata per MySQL: gestisce correttamente tutti i caratteri Unicode incluse le emoji (a differenza del vecchio <code>utf8</code> di MySQL che era a 3 byte invece di 4).
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="pattern">
+    <h2>4. Il Repository Pattern</h2>
+
+    <p>Il <strong>Repository Pattern</strong> è un design pattern architetturale che separa nettamente la logica di accesso ai dati dal resto dell'applicazione.</p>
+
+    <p>L'idea centrale è semplice: invece di scrivere SQL direttamente all'interno del service o degli handler, si crea una classe dedicata (il <em>repository</em>) che fa da intermediario tra l'applicazione e il database.</p>
+
+    <div style="margin:18px 0;overflow-x:auto">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 622 440" width="100%" style="max-width:622px;display:block;margin:0 auto">
+        <defs>
+          <clipPath id="clip2">
+            <rect x="1" y="1" width="620" height="438" rx="6"/>
+          </clipPath>
+        </defs>
+        <rect x="1" y="1" width="620" height="438" rx="6" fill="#ffffff" stroke="#bee3f8" stroke-width="2"/>
+        <g clip-path="url(#clip2)">
+          <!-- Header -->
+          <rect x="0" y="0" width="622" height="42" fill="#2b6cb0"/>
+          <text x="311" y="27" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="13" font-weight="700" fill="white" letter-spacing="1.5">LIVELLI APPLICATIVI</text>
+          <!-- Column divider -->
+          <line x1="200" y1="42" x2="200" y2="440" stroke="#bee3f8" stroke-width="1.5"/>
+          <!-- Row 1: Handler HTTP (y=42, h=64) -->
+          <rect x="0" y="42" width="200" height="64" fill="#dbeafe"/>
+          <text x="100" y="65" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" font-weight="600" fill="#1e3a5f">Handler HTTP</text>
+          <text x="100" y="83" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="10" fill="#4a5568">(PostHandler, GetHandler)</text>
+          <text x="411" y="65" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#2d3748">Riceve richieste HTTP, valida, risponde</text>
+          <text x="411" y="83" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#718096">Non sa nulla del database</text>
+          <line x1="0" y1="106" x2="622" y2="106" stroke="#bee3f8" stroke-width="1"/>
+          <!-- Row 2: Service (y=106, h=64) -->
+          <rect x="0" y="106" width="200" height="64" fill="#bfdbfe"/>
+          <text x="100" y="129" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" font-weight="600" fill="#1e3a5f">Service</text>
+          <text x="100" y="147" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="10" fill="#4a5568">(CalcolatriceService)</text>
+          <text x="411" y="129" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#2d3748">Esegue la logica di business</text>
+          <text x="411" y="147" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#718096">Delega la persistenza al repository</text>
+          <line x1="0" y1="170" x2="622" y2="170" stroke="#bee3f8" stroke-width="1"/>
+          <!-- Row 3: Repository interface (y=170, h=78) -->
+          <rect x="0" y="170" width="200" height="78" fill="#93c5fd"/>
+          <text x="100" y="197" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" font-weight="600" fill="#1e3a5f">Repository</text>
+          <text x="100" y="215" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="10" fill="#1e3a5f">(interfaccia)</text>
+          <text x="411" y="194" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#2d3748">Unico responsabile dell'accesso al database.</text>
+          <text x="411" y="212" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#2d3748">Espone metodi Java,</text>
+          <text x="411" y="230" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#718096">nasconde tutto il SQL</text>
+          <line x1="0" y1="248" x2="622" y2="248" stroke="#bee3f8" stroke-width="1"/>
+          <!-- Row 4: Repository Impl (y=248, h=64) -->
+          <rect x="0" y="248" width="200" height="64" fill="#60a5fa"/>
+          <text x="100" y="271" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" font-weight="600" fill="white">Repository Impl</text>
+          <text x="100" y="289" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="10" fill="#dbeafe">(classe concreta)</text>
+          <text x="411" y="271" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#2d3748">Contiene il codice JDBC reale.</text>
+          <text x="411" y="289" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#718096">È l'unica classe che conosce SQL</text>
+          <line x1="0" y1="312" x2="622" y2="312" stroke="#93c5fd" stroke-width="1"/>
+          <!-- Row 5: DatabaseManager (y=312, h=64) -->
+          <rect x="0" y="312" width="200" height="64" fill="#3b82f6"/>
+          <text x="100" y="335" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" font-weight="600" fill="white">DatabaseManager</text>
+          <text x="100" y="353" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="10" fill="#dbeafe">(Singleton)</text>
+          <text x="411" y="335" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#2d3748">Gestisce la connessione JDBC</text>
+          <text x="411" y="353" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#718096">(pattern Singleton)</text>
+          <line x1="0" y1="376" x2="622" y2="376" stroke="#1d4ed8" stroke-width="1"/>
+          <!-- Row 6: Database SQLite (y=376, h=64) -->
+          <rect x="0" y="376" width="622" height="64" fill="#1d4ed8"/>
+          <line x1="200" y1="376" x2="200" y2="440" stroke="#2563eb" stroke-width="1.5"/>
+          <text x="100" y="402" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="12" font-weight="600" fill="white">Database SQLite</text>
+          <text x="100" y="420" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="10" fill="#bfdbfe">calcolatrice.db</text>
+          <text x="411" y="402" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#dbeafe">Archiviazione fisica dei dati</text>
+        </g>
+      </svg>
+    </div>
+
+    <h3>4.1 Vantaggi del Repository Pattern</h3>
+
+    <div class="success">
+        <ul>
+            <li>✅ <strong>Separazione delle responsabilità:</strong> il service conosce solo il "contratto" (l'interfaccia), non come i dati vengono salvati fisicamente</li>
+            <li>✅ <strong>Intercambiabilità:</strong> per passare da SQLite a MySQL basta creare una nuova implementazione dell'interfaccia, senza toccare service o handler</li>
+            <li>✅ <strong>Testabilità:</strong> si può creare un'implementazione "finta" (mock) per i test automatici, senza accedere a un vero database</li>
+            <li>✅ <strong>Centralizzazione del SQL:</strong> tutto il codice SQL è in un unico posto, facile da mantenere e correggere</li>
+        </ul>
+    </div>
+
+    <h3>4.2 Struttura delle classi nel progetto</h3>
+    <div style="margin:18px 0;overflow-x:auto">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 330" width="100%" style="max-width:720px;display:block;margin:0 auto">
+        <rect x="0" y="0" width="720" height="330" rx="8" fill="#f7fafc" stroke="#bee3f8" stroke-width="2"/>
+        <!-- Line 1: root -->
+        <text x="20" y="32" font-family="'Cascadia Code','Fira Code','Courier New',monospace" font-size="13" font-weight="700" fill="#2d3748">src/serverrest/</text>
+        <!-- Line 2: │ -->
+        <text x="20" y="60" font-family="'Cascadia Code','Fira Code','Courier New',monospace" font-size="13" fill="#a0aec0">│</text>
+        <!-- Line 3: ├── db/ -->
+        <text x="20" y="88" font-family="'Cascadia Code','Fira Code','Courier New',monospace" font-size="13" fill="#2d3748">├── </text>
+        <text x="52" y="88" font-family="'Cascadia Code','Fira Code','Courier New',monospace" font-size="13" font-weight="700" fill="#2b6cb0">db/</text>
+        <text x="108" y="88" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" fill="#a0aec0" font-style="italic">← package accesso dati</text>
+        <!-- Line 4: DatabaseManager -->
+        <text x="20" y="116" font-family="'Cascadia Code','Fira Code','Courier New',monospace" font-size="13" fill="#2d3748">│   ├── DatabaseManager.java</text>
+        <rect x="370" y="102" width="72" height="20" rx="10" fill="#feebc8"/>
+        <text x="406" y="116" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" font-weight="600" fill="#7b341e">Singleton</text>
+        <text x="452" y="116" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#4a5568">connessione JDBC</text>
+        <!-- Line 5: OperazioneRepository -->
+        <text x="20" y="144" font-family="'Cascadia Code','Fira Code','Courier New',monospace" font-size="13" fill="#2d3748">│   ├── OperazioneRepository.java</text>
+        <rect x="370" y="130" width="82" height="20" rx="10" fill="#bee3f8"/>
+        <text x="411" y="144" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" font-weight="600" fill="#1a365d">Interfaccia</text>
+        <text x="462" y="144" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#4a5568">contratto repository</text>
+        <!-- Line 6: OperazioneRepositoryImpl -->
+        <text x="20" y="172" font-family="'Cascadia Code','Fira Code','Courier New',monospace" font-size="13" fill="#2d3748">│   └── OperazioneRepositoryImpl.java</text>
+        <rect x="370" y="158" width="44" height="20" rx="10" fill="#c6f6d5"/>
+        <text x="392" y="172" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" font-weight="600" fill="#1c4532">Impl</text>
+        <text x="424" y="172" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#4a5568">codice JDBC/SQL</text>
+        <!-- Line 7: │ -->
+        <text x="20" y="200" font-family="'Cascadia Code','Fira Code','Courier New',monospace" font-size="13" fill="#a0aec0">│</text>
+        <!-- Line 8: OperazioneRecord -->
+        <text x="20" y="228" font-family="'Cascadia Code','Fira Code','Courier New',monospace" font-size="13" fill="#2d3748">├── OperazioneRecord.java</text>
+        <rect x="370" y="214" width="52" height="20" rx="10" fill="#e9d8fd"/>
+        <text x="396" y="228" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" font-weight="600" fill="#44337a">Entità</text>
+        <text x="432" y="228" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#4a5568">riga del DB (composizione)</text>
+        <!-- Line 9: OperazioneResponse -->
+        <text x="20" y="256" font-family="'Cascadia Code','Fira Code','Courier New',monospace" font-size="13" fill="#2d3748">├── OperazioneResponse.java</text>
+        <rect x="370" y="242" width="40" height="20" rx="10" fill="#e9d8fd"/>
+        <text x="390" y="256" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" font-weight="600" fill="#44337a">DTO</text>
+        <text x="420" y="256" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#4a5568">dati di calcolo</text>
+        <!-- Line 10: CalcolatriceService -->
+        <text x="20" y="284" font-family="'Cascadia Code','Fira Code','Courier New',monospace" font-size="13" fill="#2d3748">├── CalcolatriceService.java</text>
+        <rect x="370" y="270" width="60" height="20" rx="10" fill="#bee3f8"/>
+        <text x="400" y="284" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" font-weight="600" fill="#1a365d">Service</text>
+        <text x="440" y="284" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#4a5568">logica di business</text>
+        <!-- Line 11: OperazioniHandler -->
+        <text x="20" y="312" font-family="'Cascadia Code','Fira Code','Courier New',monospace" font-size="13" fill="#2d3748">└── OperazioniHandler.java</text>
+        <rect x="370" y="298" width="60" height="20" rx="10" fill="#c6f6d5"/>
+        <text x="400" y="312" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" font-weight="600" fill="#1c4532">Handler</text>
+        <text x="440" y="312" font-family="'Segoe UI',Tahoma,sans-serif" font-size="12" fill="#4a5568">endpoint storico</text>
+      </svg>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="dbmanager">
+    <h2>5. DatabaseManager — gestione della connessione (multi-DB)</h2>
+
+    <p><code>DatabaseManager</code> implementa il pattern <strong>Singleton</strong> e supporta sia SQLite che MySQL. Per cambiare database è sufficiente modificare <strong>una sola riga</strong> di codice: il campo <code>DB_SELEZIONATO</code>.</p>
+
+    <p>Alla prima istanziazione esegue tre operazioni in sequenza:</p>
+    <ol>
+        <li>Costruisce la stringa di connessione in base al database selezionato</li>
+        <li>Apre la connessione JDBC tramite <code>DriverManager.getConnection()</code></li>
+        <li>Chiama <code>initSchema()</code>, che usa la sintassi DDL corretta per il database scelto</li>
+    </ol>
+
+    <h3>5.1 Codice — <code>DatabaseManager.java</code></h3>
+    <pre><code><span class="kw">package</span> serverrest.db;
+
+<span class="kw">import</span> java.sql.Connection;
+<span class="kw">import</span> java.sql.DriverManager;
+<span class="kw">import</span> java.sql.SQLException;
+<span class="kw">import</span> java.sql.Statement;
+
+<span class="kw">public class</span> <span class="cl">DatabaseManager</span> {
+
+    <span class="cm">// ═══════════════════════════════════════════════════════════════
+    //  CONFIGURAZIONE — modifica qui per cambiare database
+    // ═══════════════════════════════════════════════════════════════</span>
+
+    <span class="cm">/** Seleziona il database: DbType.SQLITE oppure DbType.MYSQL */</span>
+    <span class="kw">private static final</span> <span class="cl">DbType</span> DB_SELEZIONATO = <span class="cl">DbType</span>.SQLITE;
+
+    <span class="cm">// -- Parametri SQLite ------------------------------------------------</span>
+    <span class="kw">private static final</span> String SQLITE_URL = <span class="st">"jdbc:sqlite:calcolatrice.db"</span>;
+
+    <span class="cm">// -- Parametri MySQL -------------------------------------------------</span>
+    <span class="kw">private static final</span> String MYSQL_HOST     = <span class="st">"localhost"</span>;
+    <span class="kw">private static final int</span>    MYSQL_PORT     = 3306;
+    <span class="kw">private static final</span> String MYSQL_DATABASE = <span class="st">"calcolatrice_db"</span>;
+    <span class="kw">private static final</span> String MYSQL_USER     = <span class="st">"root"</span>;
+    <span class="kw">private static final</span> String MYSQL_PASSWORD = <span class="st">"password"</span>;
+    <span class="kw">private static final</span> String MYSQL_URL =
+        <span class="st">"jdbc:mysql://"</span> + MYSQL_HOST + <span class="st">":"</span> + MYSQL_PORT + <span class="st">"/"</span> + MYSQL_DATABASE
+        + <span class="st">"?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC"</span>;
+
+    <span class="cm">// ═══════════════════════════════════════════════════════════════
+    //  Enum per la selezione del database
+    // ═══════════════════════════════════════════════════════════════</span>
+
+    <span class="kw">public enum</span> <span class="cl">DbType</span> { SQLITE, MYSQL }
+
+    <span class="cm">// ═══════════════════════════════════════════════════════════════
+    //  Singleton
+    // ═══════════════════════════════════════════════════════════════</span>
+
+    <span class="kw">private static</span> <span class="cl">DatabaseManager</span> instance;
+    <span class="kw">private</span> <span class="cl">Connection</span> connection;
+
+    <span class="kw">private</span> <span class="cl">DatabaseManager</span>() <span class="kw">throws</span> <span class="cl">SQLException</span> {
+        connection = creaConnessione();
+        initSchema();
+    }
+
+    <span class="kw">public static synchronized</span> <span class="cl">DatabaseManager</span> getInstance() <span class="kw">throws</span> <span class="cl">SQLException</span> {
+        <span class="kw">if</span> (instance == <span class="kw">null</span> || instance.connection.isClosed()) {
+            instance = <span class="kw">new</span> <span class="cl">DatabaseManager</span>();
+        }
+        <span class="kw">return</span> instance;
+    }
+
+    <span class="kw">public</span> <span class="cl">Connection</span> getConnection() { <span class="kw">return</span> connection; }
+
+    <span class="cm">// ═══════════════════════════════════════════════════════════════
+    //  Metodi privati
+    // ═══════════════════════════════════════════════════════════════</span>
+
+    <span class="cm">/** Apre la connessione al database selezionato */</span>
+    <span class="kw">private static</span> <span class="cl">Connection</span> creaConnessione() <span class="kw">throws</span> <span class="cl">SQLException</span> {
+        <span class="kw">switch</span> (DB_SELEZIONATO) {
+            <span class="kw">case</span> MYSQL:
+                <span class="cm">// MySQL richiede utente e password come parametri separati</span>
+                <span class="kw">return</span> <span class="cl">DriverManager</span>.getConnection(MYSQL_URL, MYSQL_USER, MYSQL_PASSWORD);
+            <span class="kw">case</span> SQLITE:
+            <span class="kw">default</span>:
+                <span class="cm">// SQLite non usa autenticazione</span>
+                <span class="kw">return</span> <span class="cl">DriverManager</span>.getConnection(SQLITE_URL);
+        }
+    }
+
+    <span class="cm">/** Crea la tabella usando la sintassi DDL corretta per il database scelto */</span>
+    <span class="kw">private void</span> initSchema() <span class="kw">throws</span> <span class="cl">SQLException</span> {
+        String sql;
+        <span class="kw">switch</span> (DB_SELEZIONATO) {
+            <span class="kw">case</span> MYSQL:
+                sql = <span class="st">"CREATE TABLE IF NOT EXISTS operazioni ("</span>
+                    + <span class="st">"  id        INT         PRIMARY KEY AUTO_INCREMENT,"</span>
+                    + <span class="st">"  operando1 DOUBLE      NOT NULL,"</span>
+                    + <span class="st">"  operando2 DOUBLE      NOT NULL,"</span>
+                    + <span class="st">"  operatore VARCHAR(20) NOT NULL,"</span>
+                    + <span class="st">"  risultato DOUBLE      NOT NULL,"</span>
+                    + <span class="st">"  timestamp DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP"</span>
+                    + <span class="st">") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"</span>;
+                <span class="kw">break</span>;
+            <span class="kw">case</span> SQLITE:
+            <span class="kw">default</span>:
+                sql = <span class="st">"CREATE TABLE IF NOT EXISTS operazioni ("</span>
+                    + <span class="st">"  id        INTEGER     PRIMARY KEY AUTOINCREMENT,"</span>
+                    + <span class="st">"  operando1 REAL        NOT NULL,"</span>
+                    + <span class="st">"  operando2 REAL        NOT NULL,"</span>
+                    + <span class="st">"  operatore VARCHAR(20) NOT NULL,"</span>
+                    + <span class="st">"  risultato REAL        NOT NULL,"</span>
+                    + <span class="st">"  timestamp DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP"</span>
+                    + <span class="st">")"</span>;
+        }
+        <span class="kw">try</span> (<span class="cl">Statement</span> stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+}</code></pre>
+
+    <h3>5.2 Come cambiare database</h3>
+    <p>L'unica modifica necessaria per passare da SQLite a MySQL (o viceversa) è cambiare il valore di <code>DB_SELEZIONATO</code>:</p>
+    <pre><code><span class="cm">// Usa SQLite (default — nessun server richiesto)</span>
+<span class="kw">private static final</span> <span class="cl">DbType</span> DB_SELEZIONATO = <span class="cl">DbType</span>.SQLITE;
+
+<span class="cm">// Usa MySQL (richiede server MySQL attivo e database creato)</span>
+<span class="kw">private static final</span> <span class="cl">DbType</span> DB_SELEZIONATO = <span class="cl">DbType</span>.MYSQL;</code></pre>
+    <p>Tutto il resto dell'applicazione (repository, service, handler) non va toccato: non dipende dal tipo di database, ma solo dall'interfaccia <code>OperazioneRepository</code>. Questo è uno dei vantaggi principali del Repository Pattern.</p>
+
+    <h3>5.3 Perché il Singleton?</h3>
+    <p>Aprire una connessione al database è un'operazione costosa in termini di tempo e risorse. Se ogni richiesta HTTP aprisse e chiudesse la propria connessione, le prestazioni del server degrederebbero rapidamente. Il Singleton garantisce che la connessione venga aperta una sola volta e riusata per tutte le operazioni.</p>
+
+    <div class="note">
+        <strong>try-with-resources:</strong> nel metodo <code>initSchema()</code> il costrutto <code>try (Statement stmt = …)</code> chiude automaticamente lo <code>Statement</code> al termine del blocco, anche in caso di eccezione. È il modo corretto di usare le risorse JDBC in Java.
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="interfaccia">
+    <h2>6. OperazioneRepository — l'interfaccia</h2>
+
+    <p>L'<strong>interfaccia</strong> definisce il contratto: stabilisce <em>cosa</em> il repository sa fare, senza specificare <em>come</em>. Il service e gli handler dipendono solo da questa interfaccia, mai dall'implementazione concreta.</p>
+
+    <h3>6.1 Codice — <code>OperazioneRepository.java</code></h3>
+    <pre><code><span class="kw">package</span> serverrest.db;
+
+<span class="kw">import</span> serverrest.OperazioneRecord;
+<span class="kw">import</span> java.sql.SQLException;
+<span class="kw">import</span> java.util.List;
+<span class="kw">import</span> java.util.Optional;
+
+<span class="kw">public interface</span> <span class="cl">OperazioneRepository</span> {
+
+    <span class="cm">/**
+     * Salva una nuova operazione e restituisce il record persistito,
+     * comprensivo di id e timestamp generati dal database.
+     */</span>
+    <span class="cl">OperazioneRecord</span> salva(<span class="kw">double</span> operando1, <span class="kw">double</span> operando2,
+                           String operatore, <span class="kw">double</span> risultato) <span class="kw">throws</span> <span class="cl">SQLException</span>;
+
+    <span class="cm">/**
+     * Restituisce tutte le operazioni, ordinate dalla più recente.
+     */</span>
+    <span class="cl">List</span>&lt;<span class="cl">OperazioneRecord</span>&gt; trovaTutte() <span class="kw">throws</span> <span class="cl">SQLException</span>;
+
+    <span class="cm">/**
+     * Cerca un'operazione per id.
+     * Restituisce Optional.empty() se non trovata.
+     */</span>
+    <span class="cl">Optional</span>&lt;<span class="cl">OperazioneRecord</span>&gt; trovaPerID(<span class="kw">int</span> id) <span class="kw">throws</span> <span class="cl">SQLException</span>;
+}</code></pre>
+
+    <h3>6.2 Perché usare <code>Optional</code>?</h3>
+    <p><code>Optional&lt;OperazioneRecord&gt;</code> è un contenitore che può essere vuoto oppure contenere un valore. Forza il chiamante a gestire esplicitamente il caso in cui l'operazione non esista, evitando i classici <code>NullPointerException</code>.</p>
+    <pre><code><span class="cm">// Senza Optional: rischio NullPointerException se id non esiste</span>
+<span class="cl">OperazioneRecord</span> r = repository.trovaPerID(id); <span class="cm">// potrebbe essere null!</span>
+r.getId(); <span class="cm">// CRASH se r è null</span>
+
+<span class="cm">// Con Optional: il compilatore ci obbliga a controllare</span>
+<span class="cl">Optional</span>&lt;<span class="cl">OperazioneRecord</span>&gt; opt = repository.trovaPerID(id);
+<span class="kw">if</span> (opt.isPresent()) {
+    opt.get().getId(); <span class="cm">// sicuro</span>
+} <span class="kw">else</span> {
+    <span class="cm">// gestisci il caso "non trovato"</span>
+}</code></pre>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="impl">
+    <h2>7. OperazioneRepositoryImpl — l'implementazione JDBC</h2>
+
+    <p>Questa è l'unica classe che contiene codice SQL. Riceve un <code>DatabaseManager</code> via costruttore e lo usa per ottenere la connessione JDBC.</p>
+
+    <h3>7.1 Struttura della classe</h3>
+    <pre><code><span class="kw">public class</span> <span class="cl">OperazioneRepositoryImpl</span> <span class="kw">implements</span> <span class="cl">OperazioneRepository</span> {
+
+    <span class="kw">private final</span> <span class="cl">DatabaseManager</span> dbManager;
+
+    <span class="kw">public</span> <span class="cl">OperazioneRepositoryImpl</span>(<span class="cl">DatabaseManager</span> dbManager) {
+        <span class="kw">this</span>.dbManager = dbManager;
+    }
+
+    <span class="cm">// ... metodi salva(), trovaTutte(), trovaPerID() ...</span>
+}</code></pre>
+
+    <h3>7.2 Il metodo <code>salva()</code> — INSERT con chiave generata</h3>
+    <pre><code><span class="an">@Override</span>
+<span class="kw">public</span> <span class="cl">OperazioneRecord</span> salva(<span class="kw">double</span> operando1, <span class="kw">double</span> operando2,
+                              String operatore, <span class="kw">double</span> risultato) <span class="kw">throws</span> <span class="cl">SQLException</span> {
+
+    String sql = <span class="st">"INSERT INTO operazioni (operando1, operando2, operatore, risultato) "</span> +
+                 <span class="st">"VALUES (?, ?, ?, ?)"</span>;
+
+    <span class="cm">// RETURN_GENERATED_KEYS dice a JDBC di restituire l'id auto-incrementato</span>
+    <span class="kw">try</span> (<span class="cl">PreparedStatement</span> stmt = dbManager.getConnection()
+            .prepareStatement(sql, <span class="cl">Statement</span>.RETURN_GENERATED_KEYS)) {
+
+        stmt.setDouble(1, operando1);   <span class="cm">// primo '?'</span>
+        stmt.setDouble(2, operando2);   <span class="cm">// secondo '?'</span>
+        stmt.setString(3, operatore);   <span class="cm">// terzo '?'</span>
+        stmt.setDouble(4, risultato);   <span class="cm">// quarto '?'</span>
+        stmt.executeUpdate();           <span class="cm">// esegue l'INSERT</span>
+
+        <span class="cm">// Recupera l'id generato dal DB</span>
+        <span class="kw">try</span> (<span class="cl">ResultSet</span> keys = stmt.getGeneratedKeys()) {
+            <span class="kw">if</span> (keys.next()) {
+                <span class="kw">int</span> nuovoId = keys.getInt(1);
+                <span class="cm">// Rilegge il record completo per ottenere il timestamp dal DB</span>
+                <span class="kw">return</span> trovaPerID(nuovoId).orElseThrow(
+                    () -> <span class="kw">new</span> <span class="cl">SQLException</span>(<span class="st">"Record non trovato dopo INSERT"</span>)
+                );
+            }
+            <span class="kw">throw new</span> <span class="cl">SQLException</span>(<span class="st">"Nessun ID generato"</span>);
+        }
+    }
+}</code></pre>
+
+    <div class="info">
+        <strong>Perché si rilegge il record dopo l'INSERT?</strong><br>
+        Il <code>timestamp</code> viene generato dal database al momento dell'inserimento. Per averlo disponibile nell'oggetto Java restituito, dobbiamo rileggere la riga appena inserita con una SELECT by id.
+    </div>
+
+    <h3>7.3 Il metodo <code>trovaTutte()</code> — SELECT con lista</h3>
+    <pre><code><span class="an">@Override</span>
+<span class="kw">public</span> <span class="cl">List</span>&lt;<span class="cl">OperazioneRecord</span>&gt; trovaTutte() <span class="kw">throws</span> <span class="cl">SQLException</span> {
+
+    String sql = <span class="st">"SELECT id, operando1, operando2, operatore, risultato, timestamp "</span> +
+                 <span class="st">"FROM operazioni ORDER BY id DESC"</span>;
+
+    <span class="cl">List</span>&lt;<span class="cl">OperazioneRecord</span>&gt; lista = <span class="kw">new</span> <span class="cl">ArrayList</span>&lt;&gt;();
+
+    <span class="kw">try</span> (<span class="cl">Statement</span> stmt = dbManager.getConnection().createStatement();
+         <span class="cl">ResultSet</span> rs   = stmt.executeQuery(sql)) {
+
+        <span class="kw">while</span> (rs.next()) {      <span class="cm">// scorre le righe una alla volta</span>
+            lista.add(mapRow(rs));
+        }
+    }
+    <span class="kw">return</span> lista;
+}</code></pre>
+
+    <h3>7.4 Il metodo <code>trovaPerID()</code> — SELECT parametrizzata</h3>
+    <pre><code><span class="an">@Override</span>
+<span class="kw">public</span> <span class="cl">Optional</span>&lt;<span class="cl">OperazioneRecord</span>&gt; trovaPerID(<span class="kw">int</span> id) <span class="kw">throws</span> <span class="cl">SQLException</span> {
+
+    String sql = <span class="st">"SELECT id, operando1, operando2, operatore, risultato, timestamp "</span> +
+                 <span class="st">"FROM operazioni WHERE id = ?"</span>;
+
+    <span class="kw">try</span> (<span class="cl">PreparedStatement</span> stmt = dbManager.getConnection().prepareStatement(sql)) {
+        stmt.setInt(1, id);
+
+        <span class="kw">try</span> (<span class="cl">ResultSet</span> rs = stmt.executeQuery()) {
+            <span class="kw">if</span> (rs.next()) {
+                <span class="kw">return</span> <span class="cl">Optional</span>.of(mapRow(rs)); <span class="cm">// trovato</span>
+            }
+        }
+    }
+    <span class="kw">return</span> <span class="cl">Optional</span>.empty();            <span class="cm">// non trovato</span>
+}</code></pre>
+
+    <h3>7.5 Il metodo helper <code>mapRow()</code> — da ResultSet a oggetto Java</h3>
+    <p>Questo metodo privato centralizza la conversione tra una riga del database e un oggetto Java. Si chiama <strong>mapping</strong>.</p>
+    <pre><code><span class="kw">private</span> <span class="cl">OperazioneRecord</span> mapRow(<span class="cl">ResultSet</span> rs) <span class="kw">throws</span> <span class="cl">SQLException</span> {
+    <span class="cm">// Prima costruisce il DTO con i dati di calcolo (composizione)</span>
+    <span class="cl">OperazioneResponse</span> risposta = <span class="kw">new</span> <span class="cl">OperazioneResponse</span>(
+        rs.getDouble(<span class="st">"operando1"</span>),
+        rs.getDouble(<span class="st">"operando2"</span>),
+        rs.getString(<span class="st">"operatore"</span>),
+        rs.getDouble(<span class="st">"risultato"</span>)
+    );
+    <span class="cm">// Poi avvolge il DTO nell'entità di persistenza</span>
+    <span class="kw">return new</span> <span class="cl">OperazioneRecord</span>(
+        rs.getInt(<span class="st">"id"</span>),
+        rs.getString(<span class="st">"timestamp"</span>),
+        risposta
+    );
+}</code></pre>
+
+    <h3>7.6 PreparedStatement vs Statement — protezione da SQL Injection</h3>
+    <div class="important">
+        <strong>Non usare mai la concatenazione di stringhe per costruire query SQL!</strong>
+        <pre><code><span class="cm">// ❌ SBAGLIATO — vulnerabile a SQL Injection</span>
+String sql = <span class="st">"SELECT * FROM operazioni WHERE id = "</span> + id;
+stmt.execute(sql);
+
+<span class="cm">// ✅ CORRETTO — usa PreparedStatement con segnaposto '?'</span>
+String sql = <span class="st">"SELECT * FROM operazioni WHERE id = ?"</span>;
+PreparedStatement stmt = conn.prepareStatement(sql);
+stmt.setInt(1, id);</code></pre>
+        Con <code>PreparedStatement</code>, i valori dei parametri vengono trattati sempre come dati, mai come parte del codice SQL.
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="record">
+    <h2>8. OperazioneRecord — entità con composizione</h2>
+
+    <p><code>OperazioneRecord</code> rappresenta una riga completa della tabella <code>operazioni</code>. È progettata con il pattern della <strong>composizione</strong>: invece di ricopiare tutti i campi di <code>OperazioneResponse</code>, ne contiene un'istanza come attributo.</p>
+
+    <h3>8.1 Composizione vs duplicazione</h3>
+    <table>
+        <tr>
+            <th>Approccio</th>
+            <th>Struttura</th>
+            <th>Problema</th>
+        </tr>
+        <tr>
+            <td><strong>Duplicazione</strong> (da evitare)</td>
+            <td><code>OperazioneRecord</code> copia i campi <em>operando1, operando2, operatore, risultato, operazione</em> da <code>OperazioneResponse</code>, poi aggiunge <em>id</em> e <em>timestamp</em></td>
+            <td>Violazione del principio DRY (Don't Repeat Yourself). Se si modifica <code>OperazioneResponse</code> bisogna ricordarsi di aggiornare anche <code>OperazioneRecord</code></td>
+        </tr>
+        <tr>
+            <td><strong>Composizione</strong> (approccio scelto)</td>
+            <td><code>OperazioneRecord</code> contiene un campo <code>risposta</code> di tipo <code>OperazioneResponse</code>, più solo i propri attributi: <em>id</em> e <em>timestamp</em></td>
+            <td>Nessuno: ogni classe contiene solo i propri dati</td>
+        </tr>
+    </table>
+
+    <h3>8.2 Codice — <code>OperazioneRecord.java</code></h3>
+    <pre><code><span class="kw">public class</span> <span class="cl">OperazioneRecord</span> {
+
+    <span class="cm">// ── Attributi propri: dati di persistenza ──────────────────</span>
+    <span class="kw">private int</span>    id;
+    <span class="kw">private</span> String timestamp;
+
+    <span class="cm">// ── Composizione: dati di calcolo delegati a OperazioneResponse ──</span>
+    <span class="kw">private</span> <span class="cl">OperazioneResponse</span> risposta;
+
+    <span class="cm">// Costruttore vuoto richiesto da GSON</span>
+    <span class="kw">public</span> <span class="cl">OperazioneRecord</span>() { }
+
+    <span class="kw">public</span> <span class="cl">OperazioneRecord</span>(<span class="kw">int</span> id, String timestamp, <span class="cl">OperazioneResponse</span> risposta) {
+        <span class="kw">this</span>.id        = id;
+        <span class="kw">this</span>.timestamp = timestamp;
+        <span class="kw">this</span>.risposta  = risposta;
+    }
+
+    <span class="cm">// Getter/setter degli attributi propri</span>
+    <span class="kw">public int</span>    getId()       { <span class="kw">return</span> id; }
+    <span class="kw">public</span> String getTimestamp(){ <span class="kw">return</span> timestamp; }
+
+    <span class="cm">// Getter/setter dell'oggetto composto</span>
+    <span class="kw">public</span> <span class="cl">OperazioneResponse</span> getRisposta() { <span class="kw">return</span> risposta; }
+
+    <span class="cm">// setter omessi per brevità …</span>
+}</code></pre>
+
+    <h3>8.3 Effetto sul JSON di risposta</h3>
+    <p>GSON serializza gli oggetti seguendo fedelmente la struttura delle classi. Con la composizione, il JSON risultante ha una struttura <strong>annidata</strong>:</p>
+    <pre><code><span class="cm">// Risposta JSON per GET /api/operazioni/1</span>
+{
+  <span class="st">"id"</span>: 1,
+  <span class="st">"timestamp"</span>: <span class="st">"2024-11-15 10:32:05"</span>,
+  <span class="st">"risposta"</span>: {
+    <span class="st">"operando1"</span>: 10.0,
+    <span class="st">"operando2"</span>: 5.0,
+    <span class="st">"operatore"</span>: <span class="st">"SOMMA"</span>,
+    <span class="st">"risultato"</span>: 15.0,
+    <span class="st">"operazione"</span>: <span class="st">"10,00 SOMMA 5,00 = 15,00"</span>
+  }
+}</code></pre>
+    <div class="info">
+        L'annidamento JSON rispecchia fedelmente le relazioni tra le classi Java: <code>OperazioneRecord</code> <em>contiene</em> una <code>OperazioneResponse</code>, quindi nel JSON il campo <code>"risposta"</code> è un sotto-oggetto.
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="service">
+    <h2>9. CalcolatriceService — integrazione col repository</h2>
+
+    <p>Il service viene refactored da classe con metodo statico a classe con <strong>istanza</strong>, così da poter ricevere il repository tramite costruttore (<em>Dependency Injection manuale</em>).</p>
+
+    <h3>9.1 Dependency Injection</h3>
+    <p>La <strong>Dependency Injection</strong> (DI) è il principio per cui una classe non crea le proprie dipendenze, ma le <em>riceve dall'esterno</em>. Questo rende il codice più flessibile e testabile.</p>
+    <pre><code><span class="kw">public class</span> <span class="cl">CalcolatriceService</span> {
+
+    <span class="kw">private final</span> <span class="cl">OperazioneRepository</span> repository;
+
+    <span class="cm">// La dipendenza (repository) viene INIETTATA via costruttore</span>
+    <span class="kw">public</span> <span class="cl">CalcolatriceService</span>(<span class="cl">OperazioneRepository</span> repository) {
+        <span class="kw">this</span>.repository = repository;
+    }
+
+    <span class="cm">/**
+     * 1. Calcola il risultato (logica matematica pura)
+     * 2. Salva nel DB tramite il repository
+     * 3. Restituisce il record persistito (con id e timestamp)
+     */</span>
+    <span class="kw">public</span> <span class="cl">OperazioneRecord</span> calcola(<span class="kw">double</span> operando1, <span class="kw">double</span> operando2, String operatore)
+            <span class="kw">throws</span> <span class="cl">IllegalArgumentException</span>, <span class="cl">SQLException</span> {
+
+        <span class="kw">double</span> risultato = eseguiCalcolo(operando1, operando2, operatore);
+        <span class="kw">return</span> repository.salva(operando1, operando2, operatore, risultato);
+    }
+
+    <span class="cm">// Logica matematica pura — privata, senza dipendenze esterne</span>
+    <span class="kw">private static double</span> eseguiCalcolo(<span class="kw">double</span> op1, <span class="kw">double</span> op2, String operatore) {
+        String op = operatore.toUpperCase().trim();
+        <span class="kw">switch</span> (op) {
+            <span class="kw">case</span> <span class="st">"SOMMA"</span>:    <span class="kw">case</span> <span class="st">"+"</span>: <span class="kw">return</span> op1 + op2;
+            <span class="kw">case</span> <span class="st">"SOTTRAZIONE"</span>: <span class="kw">case</span> <span class="st">"-"</span>: <span class="kw">return</span> op1 - op2;
+            <span class="kw">case</span> <span class="st">"MOLTIPLICAZIONE"</span>: <span class="kw">case</span> <span class="st">"*"</span>: <span class="kw">case</span> <span class="st">"X"</span>: <span class="kw">return</span> op1 * op2;
+            <span class="kw">case</span> <span class="st">"DIVISIONE"</span>: <span class="kw">case</span> <span class="st">"/"</span>:
+                <span class="kw">if</span> (op2 == 0) <span class="kw">throw new</span> <span class="cl">IllegalArgumentException</span>(<span class="st">"Divisione per zero"</span>);
+                <span class="kw">return</span> op1 / op2;
+            <span class="kw">default</span>:
+                <span class="kw">throw new</span> <span class="cl">IllegalArgumentException</span>(<span class="st">"Operatore non valido: "</span> + operatore);
+        }
+    }
+}</code></pre>
+
+    <div class="success">
+        <strong>Separazione delle responsabilità nel service:</strong>
+        <ul>
+            <li><code>eseguiCalcolo()</code> — metodo privato, pura matematica, nessuna dipendenza esterna</li>
+            <li><code>calcola()</code> — metodo pubblico, orchestra il calcolo e la persistenza</li>
+            <li>Il <em>come</em> vengono salvati i dati è responsabilità esclusiva del repository</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="endpoints">
+    <h2>10. Nuovi endpoint di consultazione</h2>
+
+    <p><code>OperazioniHandler</code> gestisce due endpoint con un unico handler, distinguendoli in base al path della richiesta HTTP.</p>
+
+    <table>
+        <tr>
+            <th>Metodo</th>
+            <th>Path</th>
+            <th>Funzione</th>
+            <th>Metodo repository</th>
+        </tr>
+        <tr>
+            <td><code>GET</code></td>
+            <td><code>/api/operazioni</code></td>
+            <td>Lista di tutte le operazioni (dalla più recente)</td>
+            <td><code>trovaTutte()</code></td>
+        </tr>
+        <tr>
+            <td><code>GET</code></td>
+            <td><code>/api/operazioni/{id}</code></td>
+            <td>Singola operazione per id numerico</td>
+            <td><code>trovaPerID(id)</code></td>
+        </tr>
+    </table>
+
+    <h3>10.1 Logica di routing nel handler</h3>
+    <pre><code><span class="an">@Override</span>
+<span class="kw">public void</span> handle(<span class="cl">HttpExchange</span> exchange) <span class="kw">throws</span> <span class="cl">IOException</span> {
+
+    String path = exchange.getRequestURI().getPath();
+
+    <span class="kw">try</span> {
+        <span class="kw">if</span> (path.equals(<span class="st">"/api/operazioni"</span>) || path.equals(<span class="st">"/api/operazioni/"</span>)) {
+            gestisciLista(exchange);      <span class="cm">// → trovaTutte()</span>
+        } <span class="kw">else</span> {
+            gestisciPerID(exchange, path); <span class="cm">// → trovaPerID(id)</span>
+        }
+    } <span class="kw">catch</span> (<span class="cl">SQLException</span> e) {
+        inviaErrore(exchange, 500, <span class="st">"Errore database: "</span> + e.getMessage());
+    }
+}</code></pre>
+
+    <h3>10.2 Gestione della lista</h3>
+    <pre><code><span class="kw">private void</span> gestisciLista(<span class="cl">HttpExchange</span> exchange) <span class="kw">throws</span> <span class="cl">IOException</span>, <span class="cl">SQLException</span> {
+    <span class="cl">List</span>&lt;<span class="cl">OperazioneRecord</span>&gt; lista = repository.trovaTutte();
+
+    <span class="cm">// Risposta arricchita con il conteggio totale</span>
+    <span class="cl">Map</span>&lt;String, Object&gt; risposta = <span class="kw">new</span> <span class="cl">HashMap</span>&lt;&gt;();
+    risposta.put(<span class="st">"totale"</span>, lista.size());
+    risposta.put(<span class="st">"operazioni"</span>, lista);
+
+    inviaRisposta(exchange, 200, gson.toJson(risposta));
+}</code></pre>
+
+    <h3>10.3 Gestione per id — estrazione dal path</h3>
+    <pre><code><span class="kw">private void</span> gestisciPerID(<span class="cl">HttpExchange</span> exchange, String path)
+        <span class="kw">throws</span> <span class="cl">IOException</span>, <span class="cl">SQLException</span> {
+
+    <span class="cm">// Estrae "42" da "/api/operazioni/42"</span>
+    String segmento = path.substring(<span class="st">"/api/operazioni"</span>.length()).replaceAll(<span class="st">"^/+"</span>, <span class="st">""</span>);
+
+    <span class="kw">int</span> id;
+    <span class="kw">try</span> {
+        id = <span class="cl">Integer</span>.parseInt(segmento);
+    } <span class="kw">catch</span> (<span class="cl">NumberFormatException</span> e) {
+        inviaErrore(exchange, 400, <span class="st">"ID non valido: '"</span> + segmento + <span class="st">"'"</span>);
+        <span class="kw">return</span>;
+    }
+
+    <span class="cl">Optional</span>&lt;<span class="cl">OperazioneRecord</span>&gt; risultato = repository.trovaPerID(id);
+
+    <span class="kw">if</span> (risultato.isPresent()) {
+        inviaRisposta(exchange, 200, gson.toJson(risultato.get()));
+    } <span class="kw">else</span> {
+        inviaErrore(exchange, 404, <span class="st">"Operazione con id="</span> + id + <span class="st">" non trovata"</span>);
+    }
+}</code></pre>
+
+    <h3>10.4 Esempi di risposta JSON</h3>
+
+    <h4>GET /api/operazioni</h4>
+    <pre><code>{
+  <span class="st">"totale"</span>: 2,
+  <span class="st">"operazioni"</span>: [
+    {
+      <span class="st">"id"</span>: 2,
+      <span class="st">"timestamp"</span>: <span class="st">"2024-11-15 10:45:00"</span>,
+      <span class="st">"risposta"</span>: { <span class="st">"operando1"</span>: 8.0, <span class="st">"operando2"</span>: 2.0, <span class="st">"operatore"</span>: <span class="st">"DIVISIONE"</span>,
+                    <span class="st">"risultato"</span>: 4.0, <span class="st">"operazione"</span>: <span class="st">"8,00 DIVISIONE 2,00 = 4,00"</span> }
+    },
+    {
+      <span class="st">"id"</span>: 1,
+      <span class="st">"timestamp"</span>: <span class="st">"2024-11-15 10:32:05"</span>,
+      <span class="st">"risposta"</span>: { <span class="st">"operando1"</span>: 10.0, <span class="st">"operando2"</span>: 5.0, <span class="st">"operatore"</span>: <span class="st">"SOMMA"</span>,
+                    <span class="st">"risultato"</span>: 15.0, <span class="st">"operazione"</span>: <span class="st">"10,00 SOMMA 5,00 = 15,00"</span> }
+    }
+  ]
+}</code></pre>
+
+    <h4>GET /api/operazioni/99 (id inesistente)</h4>
+    <pre><code>{
+  <span class="st">"status"</span>: 404,
+  <span class="st">"errore"</span>: <span class="st">"Operazione con id=99 non trovata"</span>
+}</code></pre>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="wiring">
+    <h2>11. Collegamento delle dipendenze in ServerRest</h2>
+
+    <p><code>ServerRest.avviaServer()</code> è il punto dove si costruisce l'intera catena di dipendenze prima di avviare il server. Ogni oggetto riceve le proprie dipendenze dal livello immediatamente superiore.</p>
+
+    <pre><code><span class="kw">public static void</span> avviaServer(<span class="kw">int</span> porta) {
+    <span class="kw">try</span> {
+        <span class="cm">// 1. Connessione al database (Singleton)</span>
+        <span class="cl">DatabaseManager</span> dbManager = <span class="cl">DatabaseManager</span>.getInstance();
+
+        <span class="cm">// 2. Repository: riceve il dbManager</span>
+        <span class="cl">OperazioneRepository</span> repository = <span class="kw">new</span> <span class="cl">OperazioneRepositoryImpl</span>(dbManager);
+
+        <span class="cm">// 3. Service: riceve il repository (dipende dall'interfaccia, non dall'impl!)</span>
+        <span class="cl">CalcolatriceService</span> service = <span class="kw">new</span> <span class="cl">CalcolatriceService</span>(repository);
+
+        <span class="cm">// 4. Server HTTP</span>
+        <span class="cl">HttpServer</span> server = <span class="cl">HttpServer</span>.create(<span class="kw">new</span> <span class="cl">InetSocketAddress</span>(porta), 0);
+
+        <span class="cm">// 5. Handler di calcolo: ricevono il service</span>
+        server.createContext(<span class="st">"/api/calcola/post"</span>, <span class="kw">new</span> <span class="cl">PostHandler</span>(service));
+        server.createContext(<span class="st">"/api/calcola/get"</span>,  <span class="kw">new</span> <span class="cl">GetHandler</span>(service));
+
+        <span class="cm">// 6. Handler storico: riceve direttamente il repository</span>
+        server.createContext(<span class="st">"/api/operazioni"</span>, <span class="kw">new</span> <span class="cl">OperazioniHandler</span>(repository));
+
+        server.createContext(<span class="st">"/"</span>, <span class="cl">ServerRest</span>::gestisciBenvenuto);
+        server.setExecutor(<span class="kw">null</span>);
+        server.start();
+
+    } <span class="kw">catch</span> (<span class="cl">SQLException</span> e) {
+        System.err.println(<span class="st">"Errore database: "</span> + e.getMessage());
+    } <span class="kw">catch</span> (<span class="cl">IOException</span> e) {
+        System.err.println(<span class="st">"Errore avvio server: "</span> + e.getMessage());
+    }
+}</code></pre>
+
+    <div class="info">
+        <strong>Perché <code>OperazioniHandler</code> dipende dal repository e non dal service?</strong><br>
+        L'handler di consultazione storico non esegue calcoli: ha bisogno solo di <em>leggere</em> dati dal database. Il service è responsabile del calcolo + persistenza, mentre il repository è responsabile solo dell'accesso ai dati. È corretto collegare l'handler direttamente al repository per non aggiungere dipendenze inutili al service.
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="flusso">
+    <h2>12. Flusso completo di una richiesta</h2>
+
+    <h3>12.1 POST /api/calcola/post — calcolo con salvataggio</h3>
+    <div style="margin:18px 0;overflow-x:auto">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 544" width="100%" style="max-width:640px;display:block;margin:0 auto">
+        <defs>
+          <marker id="arr4" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0,10 3.5,0 7" fill="#4a5568"/>
+          </marker>
+        </defs>
+        <!-- Node 1: Client (sender) -->
+        <rect x="140" y="10" width="360" height="46" rx="8" fill="#bee3f8" stroke="#2b6cb0" stroke-width="2"/>
+        <text x="320" y="30" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="14" font-weight="600" fill="#1a365d">Client</text>
+        <text x="320" y="48" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="10" fill="#4a5568">POST /api/calcola/post  ·  {operando1:10, operando2:5, "SOMMA"}</text>
+        <!-- Arrow 1 -->
+        <line x1="320" y1="56" x2="320" y2="100" stroke="#4a5568" stroke-width="2" marker-end="url(#arr4)"/>
+        <text x="330" y="72" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" fill="#718096" font-style="italic">GSON deserializza il body in OperazioneRequest</text>
+        <text x="330" y="88" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" fill="#718096" font-style="italic">Valida i campi</text>
+        <!-- Node 2: PostHandler -->
+        <rect x="140" y="106" width="360" height="46" rx="8" fill="#c6f6d5" stroke="#276749" stroke-width="2"/>
+        <text x="320" y="135" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="13" font-weight="600" fill="#1c4532">PostHandler.handle()</text>
+        <!-- Arrow 2 -->
+        <line x1="320" y1="152" x2="320" y2="192" stroke="#4a5568" stroke-width="2" marker-end="url(#arr4)"/>
+        <text x="330" y="170" font-family="'Cascadia Code','Courier New',monospace" font-size="11" fill="#2d3748">eseguiCalcolo() → risultato = 15.0</text>
+        <!-- Node 3: CalcolatriceService -->
+        <rect x="140" y="198" width="360" height="46" rx="8" fill="#ebf8ff" stroke="#3182ce" stroke-width="2"/>
+        <text x="320" y="218" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="12" font-weight="600" fill="#2c5282">CalcolatriceService</text>
+        <text x="320" y="236" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="11" fill="#4a5568">.calcola(10, 5, "SOMMA")</text>
+        <!-- Arrow 3 -->
+        <line x1="320" y1="244" x2="320" y2="290" stroke="#4a5568" stroke-width="2" marker-end="url(#arr4)"/>
+        <text x="330" y="258" font-family="'Cascadia Code','Courier New',monospace" font-size="11" fill="#2d3748">INSERT INTO operazioni ...</text>
+        <text x="330" y="274" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" fill="#718096" font-style="italic">DB genera: id=3, timestamp · SELECT by id → mapRow()</text>
+        <!-- Node 4: OperazioneRepositoryImpl -->
+        <rect x="140" y="296" width="360" height="46" rx="8" fill="#fefcbf" stroke="#d69e2e" stroke-width="2"/>
+        <text x="320" y="316" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="12" font-weight="600" fill="#744210">OperazioneRepositoryImpl</text>
+        <text x="320" y="334" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="11" fill="#92400e">.salva(10, 5, "SOMMA", 15.0)</text>
+        <!-- Arrow 4 -->
+        <line x1="320" y1="342" x2="320" y2="382" stroke="#4a5568" stroke-width="2" marker-end="url(#arr4)"/>
+        <text x="330" y="360" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" fill="#718096" font-style="italic">GSON serializza OperazioneRecord in JSON</text>
+        <!-- Node 5: PostHandler (return) -->
+        <rect x="140" y="388" width="360" height="46" rx="8" fill="#c6f6d5" stroke="#276749" stroke-width="2"/>
+        <text x="320" y="417" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="13" font-weight="600" fill="#1c4532">PostHandler</text>
+        <!-- Arrow 5 -->
+        <line x1="320" y1="434" x2="320" y2="472" stroke="#4a5568" stroke-width="2" marker-end="url(#arr4)"/>
+        <text x="330" y="452" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" fill="#718096" font-style="italic">HTTP 201 Created</text>
+        <!-- Node 6: Client (result) -->
+        <rect x="140" y="478" width="360" height="56" rx="8" fill="#bee3f8" stroke="#2b6cb0" stroke-width="2"/>
+        <text x="320" y="499" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="14" font-weight="600" fill="#1a365d">Client</text>
+        <text x="320" y="520" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="10" fill="#4a5568">{"id":3, "timestamp":"...", "risposta":{…, "risultato":15.0, …}}</text>
+      </svg>
+    </div>
+
+    <h3>12.2 GET /api/operazioni/{id} — consultazione storico</h3>
+    <div style="margin:18px 0;overflow-x:auto">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 434" width="100%" style="max-width:640px;display:block;margin:0 auto">
+        <defs>
+          <marker id="arr5" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0,10 3.5,0 7" fill="#4a5568"/>
+          </marker>
+        </defs>
+        <!-- Node 1: Client (sender) -->
+        <rect x="140" y="10" width="360" height="46" rx="8" fill="#bee3f8" stroke="#2b6cb0" stroke-width="2"/>
+        <text x="320" y="30" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="14" font-weight="600" fill="#1a365d">Client</text>
+        <text x="320" y="48" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="11" fill="#4a5568">GET /api/operazioni/3</text>
+        <!-- Arrow 1 -->
+        <line x1="320" y1="56" x2="320" y2="100" stroke="#4a5568" stroke-width="2" marker-end="url(#arr5)"/>
+        <text x="330" y="72" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" fill="#718096" font-style="italic">Estrae "3" dal path</text>
+        <text x="330" y="88" font-family="'Cascadia Code','Courier New',monospace" font-size="11" fill="#2d3748">id = Integer.parseInt("3")</text>
+        <!-- Node 2: OperazioniHandler -->
+        <rect x="140" y="106" width="360" height="46" rx="8" fill="#c6f6d5" stroke="#276749" stroke-width="2"/>
+        <text x="320" y="135" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="13" font-weight="600" fill="#1c4532">OperazioniHandler.handle()</text>
+        <!-- Arrow 2 -->
+        <line x1="320" y1="152" x2="320" y2="196" stroke="#4a5568" stroke-width="2" marker-end="url(#arr5)"/>
+        <text x="330" y="168" font-family="'Cascadia Code','Courier New',monospace" font-size="11" fill="#2d3748">SELECT … WHERE id = 3</text>
+        <text x="330" y="184" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" fill="#718096" font-style="italic">mapRow() → Optional.of(OperazioneRecord)</text>
+        <!-- Node 3: OperazioneRepositoryImpl -->
+        <rect x="140" y="202" width="360" height="46" rx="8" fill="#fefcbf" stroke="#d69e2e" stroke-width="2"/>
+        <text x="320" y="222" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="12" font-weight="600" fill="#744210">OperazioneRepositoryImpl</text>
+        <text x="320" y="240" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="11" fill="#92400e">.trovaPerID(3)</text>
+        <!-- Arrow 3 -->
+        <line x1="320" y1="248" x2="320" y2="292" stroke="#4a5568" stroke-width="2" marker-end="url(#arr5)"/>
+        <text x="330" y="264" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" fill="#718096" font-style="italic">Optional.isPresent() → true</text>
+        <text x="330" y="280" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" fill="#718096" font-style="italic">GSON serializza il record</text>
+        <!-- Node 4: OperazioniHandler (return) -->
+        <rect x="140" y="298" width="360" height="46" rx="8" fill="#c6f6d5" stroke="#276749" stroke-width="2"/>
+        <text x="320" y="327" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="13" font-weight="600" fill="#1c4532">OperazioniHandler</text>
+        <!-- Arrow 4 -->
+        <line x1="320" y1="344" x2="320" y2="382" stroke="#4a5568" stroke-width="2" marker-end="url(#arr5)"/>
+        <text x="330" y="362" font-family="'Segoe UI',Tahoma,sans-serif" font-size="11" fill="#718096" font-style="italic">HTTP 200 OK</text>
+        <!-- Node 5: Client (result) -->
+        <rect x="140" y="388" width="360" height="40" rx="8" fill="#bee3f8" stroke="#2b6cb0" stroke-width="2"/>
+        <text x="320" y="404" text-anchor="middle" font-family="'Segoe UI',Tahoma,sans-serif" font-size="14" font-weight="600" fill="#1a365d">Client</text>
+        <text x="320" y="422" text-anchor="middle" font-family="'Cascadia Code','Courier New',monospace" font-size="10" fill="#4a5568">{"id":3, "timestamp":"…", "risposta":{…}}</text>
+      </svg>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="test">
+    <h2>13. Test con curl</h2>
+
+    <p>Con il server avviato sulla porta 8080, è possibile testare tutti gli endpoint dalla riga di comando con <code>curl</code>.</p>
+
+    <h3>13.1 Eseguire un calcolo (POST)</h3>
+    <pre><code>curl -X POST http://localhost:8080/api/calcola/post \
+     -H "Content-Type: application/json" \
+     -d '{"operando1": 10, "operando2": 5, "operatore": "SOMMA"}'</code></pre>
+
+    <h3>13.2 Eseguire un calcolo (GET)</h3>
+    <pre><code>curl "http://localhost:8080/api/calcola/get?operando1=10&amp;operando2=5&amp;operatore=DIVISIONE"</code></pre>
+
+    <h3>13.3 Recuperare lo storico completo</h3>
+    <pre><code>curl http://localhost:8080/api/operazioni</code></pre>
+
+    <h3>13.4 Recuperare una singola operazione per id</h3>
+    <pre><code>curl http://localhost:8080/api/operazioni/1</code></pre>
+
+    <h3>13.5 Caso id non trovato (risposta 404)</h3>
+    <pre><code>curl -i http://localhost:8080/api/operazioni/9999</code></pre>
+
+    <div class="success">
+        <strong>Riepilogo degli endpoint disponibili:</strong>
+        <table>
+            <tr><th>Metodo</th><th>URL</th><th>Codice successo</th><th>Descrizione</th></tr>
+            <tr><td><code>POST</code></td><td><code>/api/calcola/post</code></td><td>201 Created</td><td>Calcolo da body JSON, salva nel DB</td></tr>
+            <tr><td><code>GET</code></td><td><code>/api/calcola/get</code></td><td>200 OK</td><td>Calcolo da query string, salva nel DB</td></tr>
+            <tr><td><code>GET</code></td><td><code>/api/operazioni</code></td><td>200 OK</td><td>Lista di tutte le operazioni</td></tr>
+            <tr><td><code>GET</code></td><td><code>/api/operazioni/{id}</code></td><td>200 OK</td><td>Operazione per id, 404 se non trovata</td></tr>
+            <tr><td><code>GET</code></td><td><code>/</code></td><td>200 OK</td><td>Informazioni sull'API</td></tr>
+        </table>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" id="mysql">
+    <h2>14. MySQL — setup e migrazione da SQLite</h2>
+
+    <p>Questa sezione guida passo per passo nella configurazione di MySQL come database alternativo a SQLite. Grazie al Repository Pattern e alla struttura del <code>DatabaseManager</code>, la migrazione non richiede alcuna modifica agli handler, al service o al repository.</p>
+
+    <h3>14.1 Prerequisiti</h3>
+
+    <div class="info">
+        <strong>Cosa installare:</strong>
+        <ul>
+            <li><strong>MySQL Server 8.x</strong> — scaricabile da <a href="https://dev.mysql.com/downloads/mysql/" target="_blank">dev.mysql.com/downloads/mysql/</a>. Ricorda le credenziali di root impostate durante l'installazione.</li>
+            <li><strong>Driver JDBC</strong> — <code>mysql-connector-j-x.x.x.jar</code> da <a href="https://dev.mysql.com/downloads/connector/j/" target="_blank">dev.mysql.com/downloads/connector/j/</a>. Copiarlo in <code>lib/</code> rinominandolo <code>mysql-connector-j.jar</code>.</li>
+            <li><strong>Aggiornare il classpath</strong> in <code>nbproject/project.properties</code> aggiungendo <code>lib/mysql-connector-j.jar</code>.</li>
+        </ul>
+    </div>
+
+    <h3>14.2 Creare il database su MySQL</h3>
+    <p>Prima di avviare l'applicazione bisogna creare il database su MySQL. Si può fare con il client a riga di comando o con un tool grafico (phpMyAdmin, MySQL Workbench, Adminer).</p>
+
+    <h4>Da riga di comando</h4>
+    <pre><code><span class="cm"># Accedi al client MySQL come root</span>
+mysql -u root -p
+
+<span class="cm">-- Crea il database</span>
+CREATE DATABASE IF NOT EXISTS calcolatrice_db
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
+<span class="cm">-- Verifica che sia stato creato</span>
+SHOW DATABASES;
+
+<span class="cm">-- Seleziona il database</span>
+USE calcolatrice_db;
+
+<span class="cm">-- La tabella verrà creata automaticamente da DatabaseManager.initSchema()
+-- al primo avvio dell'applicazione Java.</span></code></pre>
+
+    <div class="note">
+        <strong>Nota:</strong> la tabella <code>operazioni</code> <em>non</em> va creata manualmente: è <code>DatabaseManager.initSchema()</code> che la crea automaticamente al primo avvio, con la sintassi DDL corretta per MySQL.
+    </div>
+
+    <h3>14.3 Configurare un utente dedicato (buona pratica)</h3>
+    <p>In produzione è buona pratica non usare l'utente <code>root</code>, ma creare un utente con privilegi limitati al solo database dell'applicazione.</p>
+    <pre><code><span class="cm">-- Crea un utente dedicato</span>
+CREATE USER <span class="st">'calcolatrice'</span>@<span class="st">'localhost'</span> IDENTIFIED BY <span class="st">'passwordSicura123!'</span>;
+
+<span class="cm">-- Concedi solo i privilegi necessari su questo database</span>
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, INDEX
+    ON calcolatrice_db.*
+    TO <span class="st">'calcolatrice'</span>@<span class="st">'localhost'</span>;
+
+FLUSH PRIVILEGES;</code></pre>
+    <p>Aggiorna poi i parametri in <code>DatabaseManager.java</code>:</p>
+    <pre><code><span class="kw">private static final</span> String MYSQL_USER     = <span class="st">"calcolatrice"</span>;
+<span class="kw">private static final</span> String MYSQL_PASSWORD = <span class="st">"passwordSicura123!"</span>;</code></pre>
+
+    <h3>14.4 Attivare MySQL in DatabaseManager</h3>
+    <p>Con il server avviato e il database creato, cambia la riga di configurazione:</p>
+    <pre><code><span class="cm">// Prima (SQLite)</span>
+<span class="kw">private static final</span> <span class="cl">DbType</span> DB_SELEZIONATO = <span class="cl">DbType</span>.SQLITE;
+
+<span class="cm">// Dopo (MySQL) — unica modifica necessaria</span>
+<span class="kw">private static final</span> <span class="cl">DbType</span> DB_SELEZIONATO = <span class="cl">DbType</span>.MYSQL;</code></pre>
+    <p>Ricompila ed esegui: il server si avvierà connettendosi a MySQL, creerà la tabella se non esiste e risponderà agli stessi endpoint di prima.</p>
+
+    <h3>14.5 Confronto SQLite vs MySQL</h3>
+    <table>
+        <tr>
+            <th>Caratteristica</th>
+            <th>SQLite</th>
+            <th>MySQL</th>
+        </tr>
+        <tr>
+            <td>Architettura</td>
+            <td>Embedded (file locale)</td>
+            <td>Client-server (processo separato)</td>
+        </tr>
+        <tr>
+            <td>Installazione</td>
+            <td>Solo JAR driver (2 MB)</td>
+            <td>Server MySQL + JAR driver</td>
+        </tr>
+        <tr>
+            <td>Autenticazione</td>
+            <td>Nessuna</td>
+            <td>Utente + password</td>
+        </tr>
+        <tr>
+            <td>Concorrenza</td>
+            <td>Scritture serializzate (un writer alla volta)</td>
+            <td>Multi-utente, scritture concorrenti</td>
+        </tr>
+        <tr>
+            <td>Tipo <code>id</code></td>
+            <td><code>INTEGER AUTOINCREMENT</code></td>
+            <td><code>INT AUTO_INCREMENT</code></td>
+        </tr>
+        <tr>
+            <td>Tipo decimale</td>
+            <td><code>REAL</code></td>
+            <td><code>DOUBLE</code></td>
+        </tr>
+        <tr>
+            <td>Portabilità dati</td>
+            <td>File <code>.db</code> copiabile ovunque</td>
+            <td>Export/import tramite mysqldump</td>
+        </tr>
+        <tr>
+            <td>Caso d'uso ideale</td>
+            <td>Sviluppo, test, applicazioni locali</td>
+            <td>Produzione, applicazioni web, ambienti condivisi</td>
+        </tr>
+    </table>
+
+    <h3>14.6 Verifica del funzionamento con MySQL</h3>
+    <p>Con il server avviato in modalità MySQL, i comandi curl rimangono identici. Per verificare che i dati siano davvero salvati su MySQL:</p>
+    <pre><code><span class="cm">-- Connettiti al client MySQL e verifica i dati</span>
+USE calcolatrice_db;
+
+SELECT * FROM operazioni ORDER BY timestamp DESC;
+
+SELECT COUNT(*) AS totale_operazioni FROM operazioni;</code></pre>
+
+    <div class="success">
+        <strong>Riepilogo della migrazione da SQLite a MySQL:</strong>
+        <ol>
+            <li>Installa MySQL Server e il driver JDBC</li>
+            <li>Crea il database: <code>CREATE DATABASE calcolatrice_db;</code></li>
+            <li>Aggiorna i parametri in <code>DatabaseManager.java</code> (host, user, password)</li>
+            <li>Cambia <code>DB_SELEZIONATO = DbType.MYSQL</code></li>
+            <li>Aggiungi <code>mysql-connector-j.jar</code> al classpath in <code>project.properties</code></li>
+            <li>Ricompila ed esegui — nessun'altra modifica necessaria</li>
+        </ol>
+    </div>
+</div>
+
+</body>
+</html>

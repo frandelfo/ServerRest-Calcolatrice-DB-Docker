@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JDBC + Repository Pattern — Tutorial Java</title>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&family=Mulish:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:       #1a1a2e;
+    --ink-soft:  #44475a;
+    --page:      #faf9f6;
+    --cream:     #f3f0e8;
+    --rule:      #e0dbd0;
+    --accent:    #c0392b;
+    --accent2:   #2980b9;
+    --accent3:   #27ae60;
+    --accent-bg: #fdf3f2;
+    --code-bg:   #1e1e2e;
+    --code-fg:   #cdd6f4;
+    --tag-kw:    #cba6f7;
+    --tag-str:   #a6e3a1;
+    --tag-type:  #89dceb;
+    --tag-ann:   #fab387;
+    --tag-cmt:   #6c7086;
+    --tag-num:   #fab387;
+    --tag-met:   #89b4fa;
+    --badge-r:   #fdecea;
+    --badge-w:   #e8f5e9;
+    --badge-c:   #e3f2fd;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.08);
+    --shadow-md: 0 4px 16px rgba(0,0,0,.10);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
+    --r: 6px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Mulish', sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.75;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--ink);
+    color: #fff;
+    padding: 56px 0 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 24px,
+      rgba(255,255,255,.03) 24px,
+      rgba(255,255,255,.03) 25px
+    );
+  }
+  .header-inner {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 32px;
+    position: relative;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 99px;
+    margin-bottom: 20px;
+  }
+  header h1 {
+    font-family: 'Bitter', serif;
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 14px;
+  }
+  header h1 span { color: #f39c12; }
+  header p {
+    color: #a0a8b8;
+    font-size: 15px;
+    max-width: 540px;
+  }
+
+  /* ── LAYOUT ── */
+  .page-outer { max-width: 1080px; margin: 0 auto; padding: 0 32px 80px; display: flex; align-items: flex-start; gap: 32px; }
+  .page { flex: 1; min-width: 0; }
+
+  /* ── SIDEBAR NAV ── */
+  .toc-wrap {
+    position: sticky;
+    top: 24px;
+    flex-shrink: 0;
+    width: 190px;
+    margin-top: 40px;
+    background: var(--cream);
+    border: 1px solid var(--rule);
+    border-radius: var(--r);
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+    font-size: 12.5px;
+    z-index: 10;
+  }
+  .toc-wrap h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 10px;
+  }
+  .toc-wrap ol { padding-left: 16px; }
+  .toc-wrap li { margin: 5px 0; }
+  .toc-wrap a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color .15s;
+  }
+  .toc-wrap a:hover { color: var(--accent); }
+
+  @media (max-width: 700px) { .toc-wrap { display: none; } .page-outer { padding: 0 16px 80px; } }
+
+  /* ── SECTIONS ── */
+  section { margin-top: 52px; }
+  section:first-of-type { margin-top: 40px; }
+
+  h2 {
+    font-family: 'Bitter', serif;
+    font-size: 22px;
+    font-weight: 700;
+    border-bottom: 2px solid var(--rule);
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 28px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  h3 {
+    font-family: 'Bitter', serif;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 28px 0 10px;
+    color: var(--ink);
+  }
+
+  p { margin-bottom: 14px; color: #333; }
+
+  /* ── INFO BOXES ── */
+  .box {
+    border-left: 3px solid;
+    padding: 14px 18px;
+    border-radius: 0 var(--r) var(--r) 0;
+    margin: 20px 0;
+    font-size: 13.5px;
+  }
+  .box.info  { border-color: var(--accent2); background: #eef6fd; }
+  .box.warn  { border-color: #e67e22;        background: #fef5ec; }
+  .box.good  { border-color: var(--accent3); background: #edfbf2; }
+  .box strong { font-weight: 700; }
+
+  /* ── STEP TABLE ── */
+  .steps { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13.5px; }
+  .steps th {
+    background: var(--ink);
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    text-align: left;
+  }
+  .steps td { padding: 9px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  .steps tr:last-child td { border-bottom: none; }
+  .steps tr:nth-child(even) td { background: var(--cream); }
+  .steps code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: #eee; padding: 1px 5px; border-radius: 3px; }
+
+  /* ── SCHEMA CARD ── */
+  .schema-card {
+    background: var(--cream);
+    border: 1px solid var(--rule);
+    border-radius: var(--r);
+    overflow: hidden;
+    margin: 20px 0;
+    box-shadow: var(--shadow-sm);
+  }
+  .schema-card .sc-head {
+    background: var(--ink);
+    color: #fff;
+    padding: 10px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .schema-card table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .schema-card th { background: #2d2d44; color: #a0a8b8; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing:.06em; text-transform:uppercase; padding: 8px 18px; text-align: left; }
+  .schema-card td { padding: 8px 18px; border-bottom: 1px solid var(--rule); }
+  .schema-card tr:last-child td { border-bottom: none; }
+  .pk  { color: var(--accent); font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .nn  { color: var(--accent2); font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+  .dt  { color: #555; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  /* ── CODE BLOCK ── */
+  .code-wrap {
+    background: var(--code-bg);
+    border-radius: var(--r);
+    overflow: hidden;
+    margin: 20px 0;
+    box-shadow: var(--shadow-md);
+    position: relative;
+  }
+  .code-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    background: #181825;
+    border-bottom: 1px solid #313244;
+  }
+  .code-bar .fname {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #a0a8b8;
+  }
+  .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 99px;
+  }
+  .badge.read   { background: var(--badge-r); color: var(--accent); }
+  .badge.write  { background: var(--badge-w); color: var(--accent3); }
+  .badge.config { background: var(--badge-c); color: var(--accent2); }
+  .badge.model  { background: #fff8e1; color: #e67e22; }
+
+  pre {
+    margin: 0;
+    padding: 22px 24px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--code-fg);
+  }
+
+  /* Syntax tokens */
+  .kw  { color: var(--tag-kw); }
+  .tp  { color: var(--tag-type); }
+  .st  { color: var(--tag-str); }
+  .cm  { color: var(--tag-cmt); font-style: italic; }
+  .an  { color: var(--tag-ann); }
+  .nm  { color: var(--tag-num); }
+  .mt  { color: var(--tag-met); }
+
+  /* ── ARCH DIAGRAM ── */
+  .arch {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--cream);
+    border: 1px solid var(--rule);
+    border-radius: var(--r);
+    padding: 24px;
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+  .arch-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 110px;
+    text-align: center;
+  }
+  .arch-box {
+    padding: 10px 16px;
+    border-radius: var(--r);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+  }
+  .arch-box.app   { background: #2980b9; color: #fff; }
+  .arch-box.repo  { background: var(--accent); color: #fff; }
+  .arch-box.jdbc  { background: #8e44ad; color: #fff; }
+  .arch-box.db    { background: var(--ink); color: #fff; }
+  .arch-sub {
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 5px;
+  }
+  .arch-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    color: var(--ink-soft);
+    font-size: 22px;
+    font-weight: 300;
+  }
+
+  /* ── SUMMARY TABLE ── */
+  .sum-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 16px 0; }
+  .sum-table th { background: var(--ink); color: #fff; padding: 10px 14px; text-align: left; font-size: 12px; font-family: 'JetBrains Mono', monospace; letter-spacing:.05em; text-transform: uppercase; }
+  .sum-table td { padding: 9px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  .sum-table tr:nth-child(even) td { background: var(--cream); }
+  .sum-table tr:last-child td { border-bottom: none; }
+  .ok  { color: var(--accent3); font-weight: 700; }
+  .ko  { color: var(--accent); font-weight: 700; }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 32px;
+    color: var(--ink-soft);
+    font-size: 12px;
+    border-top: 1px solid var(--rule);
+    margin-top: 60px;
+  }
+  footer a { color: var(--accent2); text-decoration: none; }
+
+  /* ── ANIMATIONS ── */
+  section { opacity: 0; transform: translateY(16px); animation: fadeUp .5s ease forwards; }
+  section:nth-child(1) { animation-delay: .05s }
+  section:nth-child(2) { animation-delay: .12s }
+  section:nth-child(3) { animation-delay: .19s }
+  section:nth-child(4) { animation-delay: .26s }
+  section:nth-child(5) { animation-delay: .33s }
+  section:nth-child(6) { animation-delay: .40s }
+  section:nth-child(7) { animation-delay: .47s }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── INLINE CODE ── */
+  p code, li code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    background: #e8e4dc;
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--accent);
+  }
+
+  ul { padding-left: 20px; margin-bottom: 14px; }
+  ul li { margin: 5px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="pill">📘 Java Tutorial</div>
+    <h1>JDBC <span>&amp;</span> Repository Pattern</h1>
+    <p>Come leggere e scrivere su MySQL in Java con architettura pulita, usando JDBC puro e il pattern Repository.</p>
+  </div>
+</header>
+
+<div class="page-outer">
+
+  <!-- TOC sidebar -->
+  <nav class="toc-wrap">
+    <h4>Indice</h4>
+    <ol>
+      <li><a href="#intro">Cos'è JDBC</a></li>
+      <li><a href="#arch">Architettura</a></li>
+      <li><a href="#setup">Setup MySQL</a></li>
+      <li><a href="#model">Classe Modello</a></li>
+      <li><a href="#connection">ConnectionManager</a></li>
+      <li><a href="#repository">Repository</a></li>
+      <li><a href="#main">Main / Utilizzo</a></li>
+    </ol>
+  </nav>
+
+  <div class="page">
+
+  <!-- ── 1. INTRO ── -->
+  <section id="intro">
+    <h2><span class="num">1</span> Cos'è JDBC</h2>
+    <p><strong>JDBC (Java Database Connectivity)</strong> è l'API standard di Java per comunicare con database relazionali. Funziona come uno strato di astrazione: il tuo codice parla con l'API JDBC, e il <em>driver specifico</em> (nel nostro caso <code>mysql-connector-j</code>) traduce le chiamate nel protocollo nativo del database.</p>
+
+    <div class="box info">
+      <strong>💡 Analogia utile:</strong> JDBC è come una presa elettrica universale. Il tuo dispositivo (codice Java) si collega sempre allo stesso standard; è il trasformatore (driver) che si adatta al paese (database).
+    </div>
+
+    <p>Il flusso di una chiamata JDBC è sempre lo stesso:</p>
+    <table class="steps">
+      <thead>
+        <tr><th>#</th><th>Passo</th><th>Classe/Metodo chiave</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>Aprire una <strong>connessione</strong> al DB</td><td><code>DriverManager.getConnection()</code></td></tr>
+        <tr><td>2</td><td>Creare uno <strong>statement</strong> con la query</td><td><code>conn.prepareStatement(sql)</code></td></tr>
+        <tr><td>3</td><td>Legare i <strong>parametri</strong> (bind)</td><td><code>ps.setString(1, valore)</code></td></tr>
+        <tr><td>4</td><td>Eseguire la query</td><td><code>ps.executeQuery()</code> / <code>ps.executeUpdate()</code></td></tr>
+        <tr><td>5</td><td>Leggere il <strong>ResultSet</strong> (solo SELECT)</td><td><code>rs.getString("colonna")</code></td></tr>
+        <tr><td>6</td><td><strong>Chiudere</strong> tutte le risorse</td><td><code>try-with-resources</code></td></tr>
+      </tbody>
+    </table>
+
+    <div class="box warn">
+      <strong>⚠️ Mai usare Statement puro!</strong> Usa sempre <code>PreparedStatement</code>: previene le SQL Injection e migliora le performance grazie alla cache del piano di esecuzione.
+    </div>
+  </section>
+
+  <!-- ── 2. ARCH ── -->
+  <section id="arch">
+    <h2><span class="num">2</span> Architettura del progetto</h2>
+    <p>Invece di sparpagliate query SQL ovunque nel codice, usiamo il <strong>Repository Pattern</strong>: un singolo componente centralizza tutta la logica di accesso ai dati per una entità. Il resto del codice non sa nulla di SQL o JDBC.</p>
+
+    <div class="arch">
+      <div class="arch-node">
+        <div class="arch-box app">Main / Service</div>
+        <div class="arch-sub">Logica applicativa</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="arch-box repo">AnagraficaRepository</div>
+        <div class="arch-sub">Solo operazioni DB</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="arch-box jdbc">JDBC API</div>
+        <div class="arch-sub">PreparedStatement</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="arch-box db">MySQL</div>
+        <div class="arch-sub">Database fisico</div>
+      </div>
+    </div>
+
+    <p>La struttura dei file del progetto è la seguente:</p>
+    <div class="code-wrap">
+      <div class="code-bar">
+        <span class="fname">struttura progetto</span>
+        <span class="badge config">Java</span>
+      </div>
+      <pre>src/
+├── java/com/example/jdbc/
+│   ├── model/
+│   │   └── <span class="tp">Anagrafica.java</span>              <span class="cm">// POJO entità</span>
+│   ├── repository/
+│   │   ├── <span class="tp">AnagraficaRepository.java</span>     <span class="cm">// interfaccia</span>
+│   │   └── <span class="tp">AnagraficaRepositoryImpl.java</span>
+│   ├── db/
+│   │   └── <span class="tp">ConnectionManager.java</span>         <span class="cm">// URL, user e password hardcoded</span>
+│   └── <span class="tp">Main.java</span>
+└── lib/
+    └── mysql-connector-j-9.2.0.jar        <span class="cm">// driver MySQL (vedi sezione 3)</span></pre>
+    </div>
+  </section>
+
+  <!-- ── 3. SETUP ── -->
+  <section id="setup">
+    <h2><span class="num">3</span> Setup: MySQL e librerie necessarie</h2>
+
+    <h3>Schema della tabella</h3>
+    <div class="schema-card">
+      <div class="sc-head">📋 tabella: anagrafica</div>
+      <table>
+        <thead><tr><th>Colonna</th><th>Tipo</th><th>Vincoli</th></tr></thead>
+        <tbody>
+          <tr><td><strong>id</strong></td><td class="dt">INT</td><td><span class="pk">PK · AUTO_INCREMENT</span></td></tr>
+          <tr><td>nome</td><td class="dt">VARCHAR(100)</td><td><span class="nn">NOT NULL</span></td></tr>
+          <tr><td>cognome</td><td class="dt">VARCHAR(100)</td><td><span class="nn">NOT NULL</span></td></tr>
+          <tr><td>anno_nascita</td><td class="dt">INT</td><td><span class="nn">NOT NULL</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-bar">
+        <span class="fname">schema.sql</span>
+        <span class="badge config">SQL</span>
+      </div>
+      <pre><span class="kw">CREATE DATABASE IF NOT EXISTS</span> anagrafica_db;
+<span class="kw">USE</span> anagrafica_db;
+
+<span class="kw">CREATE TABLE IF NOT EXISTS</span> anagrafica (
+    id           <span class="tp">INT</span>          <span class="kw">AUTO_INCREMENT PRIMARY KEY</span>,
+    nome         <span class="tp">VARCHAR</span>(<span class="nm">100</span>) <span class="kw">NOT NULL</span>,
+    cognome      <span class="tp">VARCHAR</span>(<span class="nm">100</span>) <span class="kw">NOT NULL</span>,
+    anno_nascita <span class="tp">INT</span>          <span class="kw">NOT NULL</span>
+);</pre>
+    </div>
+
+    <h3>Libreria richiesta: MySQL Connector/J</h3>
+    <p>L'unica libreria esterna necessaria è il <strong>driver JDBC ufficiale di MySQL</strong>, distribuito come singolo file <code>.jar</code>. JDBC stesso (<code>java.sql.*</code>) è già incluso nel JDK standard, non richiede download.</p>
+
+    <table class="steps">
+      <thead><tr><th>Libreria</th><th>Versione</th><th>Dimensione</th><th>Download</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>mysql-connector-j</strong></td>
+          <td>9.2.0</td>
+          <td>~2.5 MB</td>
+          <td><a href="https://dev.mysql.com/downloads/connector/j/" target="_blank" style="color:var(--accent2)">dev.mysql.com/downloads/connector/j</a></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="box info">
+      <strong>💡 Quale file scaricare?</strong> Nella pagina di download seleziona <em>"Platform Independent"</em> e scarica lo ZIP/TAR. Al suo interno troverai il file <code>mysql-connector-j-9.2.0.jar</code>. Copialo nella cartella <code>lib/</code> del tuo progetto.
+    </div>
+
+    <h3>Come aggiungere il JAR al classpath</h3>
+    <p>A seconda dell'ambiente di sviluppo che usi, il modo per includere il JAR cambia:</p>
+
+    <h3 style="font-size:14px; color: var(--accent2);">▸ NetBeans</h3>
+    <div class="code-wrap">
+      <div class="code-bar">
+        <span class="fname">Apache NetBeans</span>
+        <span class="badge config">IDE</span>
+      </div>
+      <pre><span class="cm">1. Nella finestra "Projects", espandi il tuo progetto</span>
+<span class="cm">2. Tasto destro su "Libraries" → "Add JAR/Folder..."</span>
+<span class="cm">3. Naviga e seleziona mysql-connector-j-9.2.0.jar</span>
+<span class="cm">4. Clicca "Open" — il JAR appare sotto "Libraries"</span>
+
+<span class="cm">In alternativa, tramite proprietà del progetto:</span>
+<span class="cm">1. Tasto destro sul progetto → "Properties"</span>
+<span class="cm">2. Categoria "Libraries" → scheda "Compile" → "Add JAR/Folder..."</span>
+<span class="cm">3. Seleziona il file e conferma con "OK"</span></pre>
+    </div>
+
+    <h3 style="font-size:14px; color: var(--accent2);">▸ Visual Studio Code</h3>
+    <div class="code-wrap">
+      <div class="code-bar">
+        <span class="fname">VS Code (con Extension Pack for Java)</span>
+        <span class="badge config">Editor</span>
+      </div>
+      <pre><span class="cm">Prerequisito: installa l'estensione "Extension Pack for Java"</span>
+<span class="cm">(include Language Support for Java, Debugger for Java, ecc.)</span>
+
+<span class="cm">Metodo 1 — tramite pannello JAVA PROJECTS (consigliato):</span>
+<span class="cm">1. Apri la vista "Java Projects" nella barra laterale</span>
+<span class="cm">2. Espandi il tuo progetto → sezione "Referenced Libraries"</span>
+<span class="cm">3. Clicca il "+" accanto a "Referenced Libraries"</span>
+<span class="cm">4. Seleziona mysql-connector-j-9.2.0.jar</span>
+
+<span class="cm">Metodo 2 — tramite settings.json del workspace:</span>
+<span class="cm">Aggiungi questa riga nel file .vscode/settings.json:</span>
+{
+    "java.project.referencedLibraries": [
+        "lib/mysql-connector-j-9.2.0.jar"
+    ]
+}</pre>
+    </div>
+
+    <div class="box info">
+      <strong>💡 Suggerimento per VS Code:</strong> posiziona il JAR nella cartella <code>lib/</code> alla radice del progetto prima di aggiungerlo. In questo modo il percorso relativo nel <code>settings.json</code> funzionerà correttamente su qualsiasi macchina che clona il progetto.
+    </div>
+
+    <h3>La stringa di connessione JDBC</h3>
+    <p>La stringa di connessione è il parametro più critico: contiene host, porta, nome del database e opzioni aggiuntive. Per MySQL la forma generale è:</p>
+    <div class="code-wrap">
+      <div class="code-bar">
+        <span class="fname">formato JDBC URL per MySQL</span>
+        <span class="badge config">URL</span>
+      </div>
+      <pre>jdbc:mysql://&lt;host&gt;:&lt;porta&gt;/&lt;nome_database&gt;?&lt;parametri&gt;
+
+<span class="cm">Esempio locale:</span>
+jdbc:mysql://localhost:3306/anagrafica_db?useSSL=false&amp;serverTimezone=UTC
+
+<span class="cm">Parametri utili più comuni:</span>
+  useSSL=false          → disabilita SSL (sviluppo locale)
+  serverTimezone=UTC    → evita errori di fuso orario
+  autoReconnect=true    → riconnessione automatica se cade il link
+  characterEncoding=UTF-8 → gestione corretta dei caratteri</pre>
+    </div>
+
+    <div class="box info">
+      <strong>🌐 Riferimento online:</strong> il sito <a href="https://www.connectionstrings.com/mysql/" target="_blank" style="color:var(--accent2); font-weight:600">connectionstrings.com/mysql</a> raccoglie la sintassi delle stringhe di connessione per tutti i principali database e driver, con esempi pronti all'uso per MySQL Connector/J, ODBC, .NET e molti altri. È utile anche per scenari avanzati come connessioni SSL, socket Unix, o MySQL su Azure/AWS.
+    </div>
+  </section>
+
+  <!-- ── 4. MODEL ── -->
+  <section id="model">
+    <h2><span class="num">4</span> Classe Modello (POJO)</h2>
+    <p>La classe <code>Anagrafica</code> rappresenta una singola riga della tabella. Non contiene alcuna logica di accesso al DB: è un semplice contenitore di dati (<em>Plain Old Java Object</em>).</p>
+
+    <div class="code-wrap">
+      <div class="code-bar">
+        <span class="fname">model/Anagrafica.java</span>
+        <span class="badge model">Model</span>
+      </div>
+      <pre><span class="kw">package</span> com.example.jdbc.model;
+
+<span class="kw">public class</span> <span class="tp">Anagrafica</span> {
+
+    <span class="kw">private</span> <span class="tp">Integer</span> id;          <span class="cm">// null finché non è salvata nel DB</span>
+    <span class="kw">private</span> <span class="tp">String</span>  nome;
+    <span class="kw">private</span> <span class="tp">String</span>  cognome;
+    <span class="kw">private</span> <span class="tp">int</span>     annoNascita;
+
+    <span class="cm">// Costruttore per INSERT (senza id)</span>
+    <span class="kw">public</span> <span class="mt">Anagrafica</span>(<span class="tp">String</span> nome, <span class="tp">String</span> cognome, <span class="tp">int</span> annoNascita) {
+        <span class="kw">this</span>.nome         = nome;
+        <span class="kw">this</span>.cognome      = cognome;
+        <span class="kw">this</span>.annoNascita  = annoNascita;
+    }
+
+    <span class="cm">// Costruttore per lettura dal DB (con id)</span>
+    <span class="kw">public</span> <span class="mt">Anagrafica</span>(<span class="tp">int</span> id, <span class="tp">String</span> nome, <span class="tp">String</span> cognome, <span class="tp">int</span> annoNascita) {
+        <span class="kw">this</span>.id           = id;
+        <span class="kw">this</span>.nome         = nome;
+        <span class="kw">this</span>.cognome      = cognome;
+        <span class="kw">this</span>.annoNascita  = annoNascita;
+    }
+
+    <span class="cm">// Getter e Setter ─────────────────────────────────────</span>
+    <span class="kw">public</span> <span class="tp">Integer</span> <span class="mt">getId</span>()          { <span class="kw">return</span> id; }
+    <span class="kw">public void</span>    <span class="mt">setId</span>(<span class="tp">int</span> id)     { <span class="kw">this</span>.id = id; }
+
+    <span class="kw">public</span> <span class="tp">String</span>  <span class="mt">getNome</span>()         { <span class="kw">return</span> nome; }
+    <span class="kw">public void</span>    <span class="mt">setNome</span>(<span class="tp">String</span> v) { <span class="kw">this</span>.nome = v; }
+
+    <span class="kw">public</span> <span class="tp">String</span>  <span class="mt">getCognome</span>()         { <span class="kw">return</span> cognome; }
+    <span class="kw">public void</span>    <span class="mt">setCognome</span>(<span class="tp">String</span> v) { <span class="kw">this</span>.cognome = v; }
+
+    <span class="kw">public int</span>     <span class="mt">getAnnoNascita</span>()         { <span class="kw">return</span> annoNascita; }
+    <span class="kw">public void</span>    <span class="mt">setAnnoNascita</span>(<span class="tp">int</span> v)   { <span class="kw">this</span>.annoNascita = v; }
+
+    <span class="an">@Override</span>
+    <span class="kw">public</span> <span class="tp">String</span> <span class="mt">toString</span>() {
+        <span class="kw">return</span> <span class="st">"Anagrafica{id="</span> + id +
+               <span class="st">", nome='"</span> + nome + <span class="st">'\''</span> +
+               <span class="st">", cognome='"</span> + cognome + <span class="st">'\''</span> +
+               <span class="st">", annoNascita="</span> + annoNascita + <span class="st">'}'</span>;
+    }
+}</pre>
+    </div>
+  </section>
+
+  <!-- ── 5. CONNECTION ── -->
+  <section id="connection">
+    <h2><span class="num">5</span> ConnectionManager</h2>
+    <p>Un componente centralizzato che espone un unico metodo statico <code>getConnection()</code>. I parametri di connessione sono definiti come costanti direttamente nel codice: semplice e immediato per un progetto didattico o prototipo.</p>
+
+    <div class="code-wrap">
+      <div class="code-bar">
+        <span class="fname">db/ConnectionManager.java</span>
+        <span class="badge config">Config</span>
+      </div>
+      <pre><span class="kw">package</span> com.example.jdbc.db;
+
+<span class="kw">import</span> java.sql.Connection;
+<span class="kw">import</span> java.sql.DriverManager;
+
+<span class="kw">public class</span> <span class="tp">ConnectionManager</span> {
+
+    <span class="cm">// ── Parametri di connessione — modifica questi valori ────────────</span>
+    <span class="kw">private static final</span> <span class="tp">String</span> URL =
+        <span class="st">"jdbc:mysql://localhost:3306/anagrafica_db?useSSL=false&amp;serverTimezone=UTC"</span>;
+    <span class="kw">private static final</span> <span class="tp">String</span> USER     = <span class="st">"root"</span>;
+    <span class="kw">private static final</span> <span class="tp">String</span> PASSWORD = <span class="st">"la_tua_password"</span>;
+
+    <span class="cm">/**
+     * Restituisce una nuova connessione al database.
+     * Il chiamante è responsabile di chiuderla (preferibilmente con try-with-resources).
+     */</span>
+    <span class="kw">public static</span> <span class="tp">Connection</span> <span class="mt">getConnection</span>() <span class="kw">throws</span> <span class="tp">Exception</span> {
+        <span class="kw">return</span> <span class="tp">DriverManager</span>.<span class="mt">getConnection</span>(URL, USER, PASSWORD);
+    }
+
+    <span class="cm">// Classe di sola utilità: costruttore privato</span>
+    <span class="kw">private</span> <span class="mt">ConnectionManager</span>() {}
+}</pre>
+    </div>
+
+    <div class="box warn">
+      <strong>⚠️ Solo per uso didattico!</strong> Hardcodare le credenziali nel sorgente va bene per imparare o per prototipi locali, ma <strong>non farlo mai in produzione</strong>: le password nel codice finiscono nei sistemi di versioning (Git) e sono visibili a chiunque abbia accesso al repository. In un progetto reale usa variabili d'ambiente o un file di configurazione esterno non versionato.
+    </div>
+
+    <div class="box good">
+      <strong>✅ Nota:</strong> In un'applicazione reale aggiungeresti <strong>HikariCP</strong> come pool di connessioni direttamente in questa classe, sostituendo <code>DriverManager.getConnection()</code> con <code>hikariDataSource.getConnection()</code>. L'interfaccia verso il Repository rimane identica.
+    </div>
+  </section>
+
+  <!-- ── 6. REPOSITORY ── -->
+  <section id="repository">
+    <h2><span class="num">6</span> Repository: interfaccia e implementazione</h2>
+    <p>Prima definiamo il <strong>contratto</strong> (interfaccia), poi l'implementazione concreta con JDBC. Questo disaccoppiamento permette di sostituire l'implementazione (es. con un ORM) senza toccare il codice che usa il repository.</p>
+
+    <h3>Interfaccia</h3>
+    <div class="code-wrap">
+      <div class="code-bar">
+        <span class="fname">repository/AnagraficaRepository.java</span>
+        <span class="badge config">Interface</span>
+      </div>
+      <pre><span class="kw">package</span> com.example.jdbc.repository;
+
+<span class="kw">import</span> com.example.jdbc.model.Anagrafica;
+<span class="kw">import</span> java.util.List;
+<span class="kw">import</span> java.util.Optional;
+
+<span class="kw">public interface</span> <span class="tp">AnagraficaRepository</span> {
+
+    <span class="cm">/** Inserisce un nuovo record e imposta l'id generato sull'oggetto */</span>
+    <span class="kw">void</span>               <span class="mt">save</span>(<span class="tp">Anagrafica</span> a) <span class="kw">throws</span> <span class="tp">Exception</span>;
+
+    <span class="cm">/** Legge tutti i record */</span>
+    <span class="tp">List</span>&lt;<span class="tp">Anagrafica</span>&gt;   <span class="mt">findAll</span>()        <span class="kw">throws</span> <span class="tp">Exception</span>;
+
+    <span class="cm">/** Cerca per id; ritorna Optional.empty() se non trovato */</span>
+    <span class="tp">Optional</span>&lt;<span class="tp">Anagrafica</span>&gt; <span class="mt">findById</span>(<span class="tp">int</span> id) <span class="kw">throws</span> <span class="tp">Exception</span>;
+
+    <span class="cm">/** Aggiorna nome, cognome e anno di un record esistente */</span>
+    <span class="kw">void</span>               <span class="mt">update</span>(<span class="tp">Anagrafica</span> a) <span class="kw">throws</span> <span class="tp">Exception</span>;
+
+    <span class="cm">/** Cancella il record con l'id specificato */</span>
+    <span class="kw">void</span>               <span class="mt">deleteById</span>(<span class="tp">int</span> id) <span class="kw">throws</span> <span class="tp">Exception</span>;
+}</pre>
+    </div>
+
+    <h3>Implementazione JDBC</h3>
+    <div class="code-wrap">
+      <div class="code-bar">
+        <span class="fname">repository/AnagraficaRepositoryImpl.java</span>
+        <span class="badge write">Write</span>
+      </div>
+      <pre><span class="kw">package</span> com.example.jdbc.repository;
+
+<span class="kw">import</span> com.example.jdbc.db.ConnectionManager;
+<span class="kw">import</span> com.example.jdbc.model.Anagrafica;
+
+<span class="kw">import</span> java.sql.*;
+<span class="kw">import</span> java.util.*;
+
+<span class="kw">public class</span> <span class="tp">AnagraficaRepositoryImpl</span> <span class="kw">implements</span> <span class="tp">AnagraficaRepository</span> {
+
+    <span class="cm">// ── Query SQL come costanti ────────────────────────────────────────</span>
+    <span class="kw">private static final</span> <span class="tp">String</span> INSERT =
+        <span class="st">"INSERT INTO anagrafica (nome, cognome, anno_nascita) VALUES (?, ?, ?)"</span>;
+    <span class="kw">private static final</span> <span class="tp">String</span> SELECT_ALL =
+        <span class="st">"SELECT id, nome, cognome, anno_nascita FROM anagrafica ORDER BY cognome, nome"</span>;
+    <span class="kw">private static final</span> <span class="tp">String</span> SELECT_BY_ID =
+        <span class="st">"SELECT id, nome, cognome, anno_nascita FROM anagrafica WHERE id = ?"</span>;
+    <span class="kw">private static final</span> <span class="tp">String</span> UPDATE =
+        <span class="st">"UPDATE anagrafica SET nome = ?, cognome = ?, anno_nascita = ? WHERE id = ?"</span>;
+    <span class="kw">private static final</span> <span class="tp">String</span> DELETE =
+        <span class="st">"DELETE FROM anagrafica WHERE id = ?"</span>;
+
+    <span class="cm">// ── SAVE (INSERT) ─────────────────────────────────────────────────</span>
+    <span class="an">@Override</span>
+    <span class="kw">public void</span> <span class="mt">save</span>(<span class="tp">Anagrafica</span> a) <span class="kw">throws</span> <span class="tp">Exception</span> {
+        <span class="cm">// try-with-resources chiude automaticamente Connection e Statement</span>
+        <span class="kw">try</span> (<span class="tp">Connection</span>        conn = <span class="tp">ConnectionManager</span>.<span class="mt">getConnection</span>();
+             <span class="tp">PreparedStatement</span> ps   = conn.<span class="mt">prepareStatement</span>(INSERT,
+                                            <span class="tp">Statement</span>.RETURN_GENERATED_KEYS)) {
+
+            ps.<span class="mt">setString</span>(<span class="nm">1</span>, a.<span class="mt">getNome</span>());
+            ps.<span class="mt">setString</span>(<span class="nm">2</span>, a.<span class="mt">getCognome</span>());
+            ps.<span class="mt">setInt</span>   (<span class="nm">3</span>, a.<span class="mt">getAnnoNascita</span>());
+            ps.<span class="mt">executeUpdate</span>();
+
+            <span class="cm">// Recuperiamo l'id auto-generato dal DB</span>
+            <span class="kw">try</span> (<span class="tp">ResultSet</span> keys = ps.<span class="mt">getGeneratedKeys</span>()) {
+                <span class="kw">if</span> (keys.<span class="mt">next</span>()) {
+                    a.<span class="mt">setId</span>(keys.<span class="mt">getInt</span>(<span class="nm">1</span>));
+                }
+            }
+        }
+    }
+
+    <span class="cm">// ── FIND ALL (SELECT) ─────────────────────────────────────────────</span>
+    <span class="an">@Override</span>
+    <span class="kw">public</span> <span class="tp">List</span>&lt;<span class="tp">Anagrafica</span>&gt; <span class="mt">findAll</span>() <span class="kw">throws</span> <span class="tp">Exception</span> {
+        <span class="tp">List</span>&lt;<span class="tp">Anagrafica</span>&gt; result = <span class="kw">new</span> <span class="tp">ArrayList</span>&lt;&gt;();
+
+        <span class="kw">try</span> (<span class="tp">Connection</span>        conn = <span class="tp">ConnectionManager</span>.<span class="mt">getConnection</span>();
+             <span class="tp">PreparedStatement</span> ps   = conn.<span class="mt">prepareStatement</span>(SELECT_ALL);
+             <span class="tp">ResultSet</span>         rs   = ps.<span class="mt">executeQuery</span>()) {
+
+            <span class="kw">while</span> (rs.<span class="mt">next</span>()) {
+                result.<span class="mt">add</span>(<span class="mt">mapRow</span>(rs));   <span class="cm">// metodo di mapping riusabile</span>
+            }
+        }
+        <span class="kw">return</span> result;
+    }
+
+    <span class="cm">// ── FIND BY ID ────────────────────────────────────────────────────</span>
+    <span class="an">@Override</span>
+    <span class="kw">public</span> <span class="tp">Optional</span>&lt;<span class="tp">Anagrafica</span>&gt; <span class="mt">findById</span>(<span class="tp">int</span> id) <span class="kw">throws</span> <span class="tp">Exception</span> {
+        <span class="kw">try</span> (<span class="tp">Connection</span>        conn = <span class="tp">ConnectionManager</span>.<span class="mt">getConnection</span>();
+             <span class="tp">PreparedStatement</span> ps   = conn.<span class="mt">prepareStatement</span>(SELECT_BY_ID)) {
+
+            ps.<span class="mt">setInt</span>(<span class="nm">1</span>, id);
+
+            <span class="kw">try</span> (<span class="tp">ResultSet</span> rs = ps.<span class="mt">executeQuery</span>()) {
+                <span class="kw">return</span> rs.<span class="mt">next</span>()
+                    ? <span class="tp">Optional</span>.<span class="mt">of</span>(<span class="mt">mapRow</span>(rs))
+                    : <span class="tp">Optional</span>.<span class="mt">empty</span>();
+            }
+        }
+    }
+
+    <span class="cm">// ── UPDATE ────────────────────────────────────────────────────────</span>
+    <span class="an">@Override</span>
+    <span class="kw">public void</span> <span class="mt">update</span>(<span class="tp">Anagrafica</span> a) <span class="kw">throws</span> <span class="tp">Exception</span> {
+        <span class="kw">try</span> (<span class="tp">Connection</span>        conn = <span class="tp">ConnectionManager</span>.<span class="mt">getConnection</span>();
+             <span class="tp">PreparedStatement</span> ps   = conn.<span class="mt">prepareStatement</span>(UPDATE)) {
+
+            ps.<span class="mt">setString</span>(<span class="nm">1</span>, a.<span class="mt">getNome</span>());
+            ps.<span class="mt">setString</span>(<span class="nm">2</span>, a.<span class="mt">getCognome</span>());
+            ps.<span class="mt">setInt</span>   (<span class="nm">3</span>, a.<span class="mt">getAnnoNascita</span>());
+            ps.<span class="mt">setInt</span>   (<span class="nm">4</span>, a.<span class="mt">getId</span>());
+            ps.<span class="mt">executeUpdate</span>();
+        }
+    }
+
+    <span class="cm">// ── DELETE ────────────────────────────────────────────────────────</span>
+    <span class="an">@Override</span>
+    <span class="kw">public void</span> <span class="mt">deleteById</span>(<span class="tp">int</span> id) <span class="kw">throws</span> <span class="tp">Exception</span> {
+        <span class="kw">try</span> (<span class="tp">Connection</span>        conn = <span class="tp">ConnectionManager</span>.<span class="mt">getConnection</span>();
+             <span class="tp">PreparedStatement</span> ps   = conn.<span class="mt">prepareStatement</span>(DELETE)) {
+
+            ps.<span class="mt">setInt</span>(<span class="nm">1</span>, id);
+            ps.<span class="mt">executeUpdate</span>();
+        }
+    }
+
+    <span class="cm">// ── HELPER: mappa una riga del ResultSet in un oggetto ────────────</span>
+    <span class="kw">private</span> <span class="tp">Anagrafica</span> <span class="mt">mapRow</span>(<span class="tp">ResultSet</span> rs) <span class="kw">throws</span> <span class="tp">SQLException</span> {
+        <span class="kw">return new</span> <span class="tp">Anagrafica</span>(
+            rs.<span class="mt">getInt</span>   (<span class="st">"id"</span>),
+            rs.<span class="mt">getString</span>(<span class="st">"nome"</span>),
+            rs.<span class="mt">getString</span>(<span class="st">"cognome"</span>),
+            rs.<span class="mt">getInt</span>   (<span class="st">"anno_nascita"</span>)
+        );
+    }
+}</pre>
+    </div>
+
+    <div class="box info">
+      <strong>💡 try-with-resources:</strong> da Java 7 in poi, qualunque oggetto che implementa <code>AutoCloseable</code> (come <code>Connection</code>, <code>PreparedStatement</code>, <code>ResultSet</code>) viene chiuso automaticamente anche in caso di eccezione. È il modo corretto di gestire le risorse JDBC.
+    </div>
+  </section>
+
+  <!-- ── 7. MAIN ── -->
+  <section id="main">
+    <h2><span class="num">7</span> Main: esempio di utilizzo completo</h2>
+    <p>Il <code>Main</code> usa esclusivamente l'interfaccia <code>AnagraficaRepository</code>. Non c'è traccia di SQL o JDBC: quella complessità è nascosta nel repository.</p>
+
+    <div class="code-wrap">
+      <div class="code-bar">
+        <span class="fname">Main.java</span>
+        <span class="badge read">Read + Write</span>
+      </div>
+      <pre><span class="kw">package</span> com.example.jdbc;
+
+<span class="kw">import</span> com.example.jdbc.model.Anagrafica;
+<span class="kw">import</span> com.example.jdbc.repository.*;
+
+<span class="kw">import</span> java.util.List;
+
+<span class="kw">public class</span> <span class="tp">Main</span> {
+
+    <span class="kw">public static void</span> <span class="mt">main</span>(<span class="tp">String</span>[] args) <span class="kw">throws</span> <span class="tp">Exception</span> {
+
+        <span class="tp">AnagraficaRepository</span> repo = <span class="kw">new</span> <span class="tp">AnagraficaRepositoryImpl</span>();
+
+        <span class="cm">// ── 1. INSERT ───────────────────────────────────────────────────</span>
+        <span class="tp">Anagrafica</span> mario = <span class="kw">new</span> <span class="tp">Anagrafica</span>(<span class="st">"Mario"</span>, <span class="st">"Rossi"</span>, <span class="nm">1985</span>);
+        <span class="tp">Anagrafica</span> laura = <span class="kw">new</span> <span class="tp">Anagrafica</span>(<span class="st">"Laura"</span>, <span class="st">"Bianchi"</span>, <span class="nm">1992</span>);
+        <span class="tp">Anagrafica</span> luca  = <span class="kw">new</span> <span class="tp">Anagrafica</span>(<span class="st">"Luca"</span>,  <span class="st">"Verdi"</span>,   <span class="nm">1978</span>);
+
+        repo.<span class="mt">save</span>(mario);   <span class="cm">// mario.getId() ora ha il valore reale del DB</span>
+        repo.<span class="mt">save</span>(laura);
+        repo.<span class="mt">save</span>(luca);
+
+        <span class="tp">System</span>.out.<span class="mt">println</span>(<span class="st">"Inseriti: "</span> + mario + <span class="st">", "</span> + laura + <span class="st">", "</span> + luca);
+
+        <span class="cm">// ── 2. SELECT ALL ───────────────────────────────────────────────</span>
+        <span class="tp">List</span>&lt;<span class="tp">Anagrafica</span>&gt; tutti = repo.<span class="mt">findAll</span>();
+        <span class="tp">System</span>.out.<span class="mt">println</span>(<span class="st">"\n── Tutti i record ──"</span>);
+        tutti.<span class="mt">forEach</span>(<span class="tp">System</span>.out::println);
+
+        <span class="cm">// ── 3. SELECT BY ID ─────────────────────────────────────────────</span>
+        repo.<span class="mt">findById</span>(mario.<span class="mt">getId</span>())
+            .<span class="mt">ifPresentOrElse</span>(
+                a -&gt; <span class="tp">System</span>.out.<span class="mt">println</span>(<span class="st">"\nTrovato per id: "</span> + a),
+                () -&gt; <span class="tp">System</span>.out.<span class="mt">println</span>(<span class="st">"Non trovato"</span>)
+            );
+
+        <span class="cm">// ── 4. UPDATE ───────────────────────────────────────────────────</span>
+        mario.<span class="mt">setNome</span>(<span class="st">"Mario Angelo"</span>);
+        mario.<span class="mt">setAnnoNascita</span>(<span class="nm">1986</span>);
+        repo.<span class="mt">update</span>(mario);
+        <span class="tp">System</span>.out.<span class="mt">println</span>(<span class="st">"\nAggiornato: "</span> + mario);
+
+        <span class="cm">// ── 5. DELETE ───────────────────────────────────────────────────</span>
+        repo.<span class="mt">deleteById</span>(luca.<span class="mt">getId</span>());
+        <span class="tp">System</span>.out.<span class="mt">println</span>(<span class="st">"\nEliminato id="</span> + luca.<span class="mt">getId</span>());
+
+        <span class="cm">// ── 6. Verifica finale ──────────────────────────────────────────</span>
+        <span class="tp">System</span>.out.<span class="mt">println</span>(<span class="st">"\n── Record finali ──"</span>);
+        repo.<span class="mt">findAll</span>().<span class="mt">forEach</span>(<span class="tp">System</span>.out::println);
+    }
+}</pre>
+    </div>
+
+    <h3>Output atteso</h3>
+    <div class="code-wrap">
+      <div class="code-bar">
+        <span class="fname">console output</span>
+      </div>
+      <pre><span class="cm">Inseriti: Anagrafica{id=1, nome='Mario', cognome='Rossi', annoNascita=1985}
+         Anagrafica{id=2, nome='Laura', cognome='Bianchi', annoNascita=1992}
+         Anagrafica{id=3, nome='Luca', cognome='Verdi', annoNascita=1978}
+
+── Tutti i record ──
+Anagrafica{id=2, nome='Laura', cognome='Bianchi', annoNascita=1992}
+Anagrafica{id=1, nome='Mario', cognome='Rossi', annoNascita=1985}
+Anagrafica{id=3, nome='Luca', cognome='Verdi', annoNascita=1978}
+
+Trovato per id: Anagrafica{id=1, nome='Mario', cognome='Rossi', annoNascita=1985}
+
+Aggiornato: Anagrafica{id=1, nome='Mario Angelo', cognome='Rossi', annoNascita=1986}
+
+Eliminato id=3
+
+── Record finali ──
+Anagrafica{id=2, nome='Laura', cognome='Bianchi', annoNascita=1992}
+Anagrafica{id=1, nome='Mario Angelo', cognome='Rossi', annoNascita=1986}</span></pre>
+    </div>
+
+    <h3>Riepilogo: pro e contro di questo approccio</h3>
+    <table class="sum-table">
+      <thead><tr><th>Aspetto</th><th>Valutazione</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Controllo sull'SQL</td><td class="ok">✔ Totale</td><td>Ogni query è esplicita e ottimizzabile</td></tr>
+        <tr><td>Sicurezza (SQL Injection)</td><td class="ok">✔ Protetto</td><td>PreparedStatement con bind dei parametri</td></tr>
+        <tr><td>Boilerplate</td><td class="ko">✘ Alto</td><td>Ogni operazione richiede apertura/chiusura risorse</td></tr>
+        <tr><td>Leggibilità del codice</td><td class="ok">✔ Buona</td><td>Il pattern Repository isola la complessità</td></tr>
+        <tr><td>Performance</td><td class="ok">✔ Massima</td><td>Nessun overhead ORM; da combinare con HikariCP</td></tr>
+        <tr><td>Scalabilità del progetto</td><td class="ko">✘ Media</td><td>Molte entità → molto codice ripetitivo</td></tr>
+        <tr><td>Curva di apprendimento</td><td class="ok">✔ Bassa</td><td>Non richiede conoscenza di framework esterni</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  </div> <!-- /.page -->
+</div> <!-- /.page-outer -->
+
+<footer>
+  Tutorial JDBC + Repository Pattern &mdash; Java &amp; MySQL &nbsp;·&nbsp;
+  Riferimento: <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.sql/java/sql/package-summary.html" target="_blank">java.sql API Docs</a>
+  &nbsp;·&nbsp;
+  <a href="https://dev.mysql.com/doc/connector-j/en/" target="_blank">MySQL Connector/J</a>
+</footer>
+
+</body>
+</html>
