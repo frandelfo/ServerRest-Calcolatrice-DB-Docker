@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CI/CD con Docker – GitHub Actions per la Calcolatrice REST</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f8f9fb;
+      --surface:   #ffffff;
+      --border:    #dde1e9;
+      --accent:    #2563eb;
+      --accent-lt: #eff6ff;
+      --green:     #16a34a;
+      --green-lt:  #f0fdf4;
+      --orange:    #d97706;
+      --orange-lt: #fffbeb;
+      --red:       #dc2626;
+      --red-lt:    #fef2f2;
+      --purple:    #7c3aed;
+      --purple-lt: #f5f3ff;
+      --code-bg:   #1e2330;
+      --code-fg:   #cdd6f4;
+      --text:      #1e293b;
+      --muted:     #64748b;
+      --radius:    8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .page-header {
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #3b82f6 100%);
+      color: #fff;
+      padding: 48px 32px 40px;
+    }
+    .page-header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 6px; }
+    .page-header p  { opacity: .85; font-size: 1.05rem; }
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.35);
+      border-radius: 99px;
+      padding: 2px 12px;
+      font-size: .78rem;
+      font-weight: 600;
+      margin-right: 6px;
+      margin-top: 14px;
+    }
+
+    main { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    .toc {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 40px;
+    }
+    .toc h2 { font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 12px; }
+    .toc ol  { padding-left: 18px; }
+    .toc li  { margin: 4px 0; }
+    .toc a   { color: var(--accent); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+
+    section { margin-bottom: 48px; }
+    section h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 6px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    section h2 .num {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 99px;
+      width: 28px; height: 28px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: .85rem; font-weight: 700; flex-shrink: 0;
+    }
+    section h3 { font-size: 1.05rem; font-weight: 600; margin: 22px 0 10px; }
+
+    p { margin-bottom: 12px; }
+    ul, ol { padding-left: 22px; margin-bottom: 12px; }
+    li { margin: 5px 0; }
+    strong { color: var(--text); }
+
+    .callout {
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin: 18px 0;
+      border-left: 4px solid;
+      font-size: .93rem;
+    }
+    .callout.info   { background: var(--accent-lt); border-color: var(--accent); }
+    .callout.ok     { background: var(--green-lt);  border-color: var(--green);  }
+    .callout.warn   { background: var(--orange-lt); border-color: var(--orange); }
+    .callout.tip    { background: var(--purple-lt); border-color: var(--purple); }
+    .callout-title  { font-weight: 700; margin-bottom: 4px; }
+    .callout.info  .callout-title { color: var(--accent);  }
+    .callout.ok    .callout-title { color: var(--green);   }
+    .callout.warn  .callout-title { color: var(--orange);  }
+    .callout.tip   .callout-title { color: var(--purple);  }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      overflow-x: auto;
+      font-size: .875rem;
+      line-height: 1.7;
+      margin: 14px 0;
+      position: relative;
+    }
+    pre .label {
+      position: absolute;
+      top: 8px; right: 12px;
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #6b7a99;
+      font-family: sans-serif;
+    }
+    code { font-family: "SF Mono", "Fira Code", Consolas, monospace; }
+    p code, li code {
+      background: #eef0f5;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: .875em;
+      color: #c026d3;
+    }
+    /* Annulla l'override di "li code" per i blocchi pre dentro gli step:
+       senza questa regola code dentro pre eredita sfondo chiaro (#eef0f5)
+       rendendo il testo quasi-bianco invisibile. */
+    pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+    }
+
+    .kw  { color: #89b4fa; }
+    .cm  { color: #6272a4; font-style: italic; }
+    .str { color: #a6e3a1; }
+    .num { color: #fab387; }
+    .cmd { color: #f8f8f2; }
+    .flag{ color: #cba6f7; }
+    .sec { color: #f9e2af; }   /* secret/variable reference */
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: .9rem;
+    }
+    thead th {
+      background: var(--accent);
+      color: #fff;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+    }
+    tbody td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:nth-child(even) td { background: #f8faff; }
+
+    .steps { counter-reset: step; list-style: none; padding: 0; }
+    .steps li {
+      counter-increment: step;
+      position: relative;
+      padding-left: 40px;
+      margin-bottom: 24px;
+    }
+    .steps li::before {
+      content: counter(step);
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      width: 26px; height: 26px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; font-weight: 700;
+      position: absolute;
+      left: 0;
+      top: 2px;
+    }
+
+    /* tip cards */
+    .tip-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+      margin: 16px 0;
+    }
+    .tip-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .tip-card .tip-num {
+      font-size: .75rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+    }
+    .tip-card h4 { font-size: .95rem; margin-bottom: 6px; }
+    .tip-card p  { font-size: .88rem; color: var(--muted); margin: 0; }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: .83rem;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 600px) {
+      .page-header { padding: 32px 20px; }
+      .page-header h1 { font-size: 1.5rem; }
+      main { padding: 24px 16px 60px; }
+      .tip-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>CI/CD con Docker</h1>
+  <p>Automatizzare build, test e deploy della Calcolatrice REST con GitHub Actions</p>
+  <div>
+    <span class="badge">Docker</span>
+    <span class="badge">GitHub Actions</span>
+    <span class="badge">CI/CD</span>
+    <span class="badge">Java 24</span>
+    <span class="badge">Docker Hub</span>
+  </div>
+</header>
+
+<main>
+
+  <nav class="toc">
+    <h2>Indice</h2>
+    <ol>
+      <li><a href="#cos-e-docker">Cos'è Docker?</a></li>
+      <li><a href="#cicd">Come Docker supporta la pipeline CI/CD?</a></li>
+      <li><a href="#consigli">Consigli dall'esperto</a></li>
+      <li><a href="#tutorial">Tutorial: CI/CD per la Calcolatrice REST</a></li>
+      <li><a href="#best-practice">Best practice per la CI/CD con Docker</a></li>
+      <li><a href="#conclusioni">Conclusioni</a></li>
+    </ol>
+  </nav>
+
+  <!-- ───────────────────────── 1. COS'È DOCKER ───────────────────────── -->
+  <section id="cos-e-docker">
+    <h2><span class="num">1</span> Cos'è Docker?</h2>
+
+    <p>Docker è una piattaforma open-source che <strong>automatizza il deployment, la scalabilità e la gestione delle applicazioni</strong>. Utilizza la <em>containerizzazione</em> per impacchettare un'applicazione insieme a tutte le sue dipendenze, garantendo che il programma si esegua in modo identico su qualsiasi macchina: il portatile dello sviluppatore, il server di test, il server di produzione.</p>
+
+    <p>A differenza delle macchine virtuali tradizionali, i container <strong>condividono il kernel del sistema operativo host</strong> mantenendo l'isolamento tra loro. Questo li rende molto più leggeri: avvio in millisecondi, utilizzo minimo di RAM, nessuna installazione di un intero sistema operativo per ogni istanza.</p>
+
+    <h3>Container vs Macchina Virtuale</h3>
+    <table>
+      <thead><tr><th>Aspetto</th><th>Container Docker</th><th>Macchina Virtuale</th></tr></thead>
+      <tbody>
+        <tr><td>Avvio</td><td>Millisecondi</td><td>Decine di secondi / minuti</td></tr>
+        <tr><td>Dimensione</td><td>Decine–centinaia di MB</td><td>Gigabyte</td></tr>
+        <tr><td>Isolamento</td><td>Livello processo (namespace, cgroups)</td><td>Livello hardware virtualizzato</td></tr>
+        <tr><td>Sistema operativo</td><td>Condiviso con l'host</td><td>Completo per ogni VM</td></tr>
+        <tr><td>Portabilità</td><td>Massima — stessa image ovunque</td><td>Limitata dai formati proprietari</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <div class="callout-title">Terminologia essenziale</div>
+      <strong>Image</strong>: snapshot read-only con tutto il necessario per eseguire l'app (codice, runtime, librerie).<br>
+      <strong>Container</strong>: istanza in esecuzione di un'image — si crea, si avvia, si ferma, si elimina.<br>
+      <strong>Dockerfile</strong>: file di istruzioni che descrive <em>come</em> costruire un'image passo per passo.<br>
+      <strong>Registry</strong>: repository di image; il più noto è <strong>Docker Hub</strong> (hub.docker.com).
+    </div>
+  </section>
+
+  <!-- ───────────────────────── 2. CI/CD ───────────────────────── -->
+  <section id="cicd">
+    <h2><span class="num">2</span> Come Docker supporta la pipeline CI/CD?</h2>
+
+    <p>CI/CD sta per <strong>Continuous Integration</strong> (integrazione continua) e <strong>Continuous Deployment</strong> (deploy continuo). È una pratica che automatizza le fasi di build, test e rilascio del software: ogni volta che uno sviluppatore fa un <em>push</em> del codice, la pipeline si avvia automaticamente e produce una nuova versione verificata e pronta per il deploy.</p>
+
+    <p>Docker risolve uno dei problemi più classici dello sviluppo software — il famoso <em>"funziona sul mio PC!"</em> — garantendo che l'ambiente di esecuzione sia <strong>identico in ogni fase</strong>: sviluppo locale, server di CI, staging e produzione usano la stessa image.</p>
+
+    <h3>Il flusso CI/CD con Docker</h3>
+
+    <svg viewBox="0 0 860 170" xmlns="http://www.w3.org/2000/svg"
+         role="img" aria-label="Pipeline CI/CD con Docker"
+         style="width:100%;max-width:860px;display:block;margin:18px auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+      <defs>
+        <marker id="arr-c" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+        </marker>
+        <filter id="sh-c">
+          <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#0000001a"/>
+        </filter>
+        <linearGradient id="gBlue" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#eff6ff"/>
+          <stop offset="100%" stop-color="#dbeafe"/>
+        </linearGradient>
+        <linearGradient id="gGreen" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f0fdf4"/>
+          <stop offset="100%" stop-color="#dcfce7"/>
+        </linearGradient>
+        <linearGradient id="gPurple" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f5f3ff"/>
+          <stop offset="100%" stop-color="#ede9fe"/>
+        </linearGradient>
+        <linearGradient id="gOrange" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fffbeb"/>
+          <stop offset="100%" stop-color="#fef3c7"/>
+        </linearGradient>
+        <linearGradient id="gTeal" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f0fdfa"/>
+          <stop offset="100%" stop-color="#ccfbf1"/>
+        </linearGradient>
+      </defs>
+
+      <!-- sfondo -->
+      <rect x="4" y="4" width="852" height="162" rx="10" fill="#f8f9fb" stroke="#dde1e9" stroke-width="1.5"/>
+
+      <!-- Box 1: Sviluppatore -->
+      <g filter="url(#sh-c)">
+        <rect x="22" y="42" width="118" height="86" rx="8" fill="url(#gBlue)" stroke="#2563eb" stroke-width="1.6"/>
+      </g>
+      <text x="81" y="68" text-anchor="middle" font-size="22">👨‍💻</text>
+      <text x="81" y="90" text-anchor="middle" font-size="11" font-weight="700" fill="#1e40af">Sviluppatore</text>
+      <text x="81" y="106" text-anchor="middle" font-size="9.5" fill="#3b82f6">git push</text>
+      <text x="81" y="119" text-anchor="middle" font-size="9.5" fill="#3b82f6">→ main</text>
+
+      <!-- Freccia 1 -->
+      <line x1="142" y1="85" x2="174" y2="85" stroke="#2563eb" stroke-width="2" marker-end="url(#arr-c)"/>
+
+      <!-- Box 2: GitHub -->
+      <g filter="url(#sh-c)">
+        <rect x="176" y="42" width="118" height="86" rx="8" fill="url(#gPurple)" stroke="#7c3aed" stroke-width="1.6"/>
+      </g>
+      <text x="235" y="68" text-anchor="middle" font-size="22">🐙</text>
+      <text x="235" y="90" text-anchor="middle" font-size="11" font-weight="700" fill="#5b21b6">GitHub</text>
+      <text x="235" y="106" text-anchor="middle" font-size="9.5" fill="#7c3aed">Repository</text>
+      <text x="235" y="119" text-anchor="middle" font-size="9.5" fill="#7c3aed">+ Actions</text>
+
+      <!-- Freccia 2 -->
+      <line x1="296" y1="85" x2="328" y2="85" stroke="#2563eb" stroke-width="2" marker-end="url(#arr-c)"/>
+      <text x="312" y="76" text-anchor="middle" font-size="8.5" fill="#64748b">trigger</text>
+
+      <!-- Box 3: Build & Test -->
+      <g filter="url(#sh-c)">
+        <rect x="330" y="42" width="118" height="86" rx="8" fill="url(#gOrange)" stroke="#d97706" stroke-width="1.6"/>
+      </g>
+      <text x="389" y="68" text-anchor="middle" font-size="22">🔨</text>
+      <text x="389" y="90" text-anchor="middle" font-size="11" font-weight="700" fill="#92400e">Build</text>
+      <text x="389" y="106" text-anchor="middle" font-size="9.5" fill="#d97706">Docker image</text>
+      <text x="389" y="119" text-anchor="middle" font-size="9.5" fill="#d97706">+ ant jar</text>
+
+      <!-- Freccia 3 -->
+      <line x1="450" y1="85" x2="482" y2="85" stroke="#2563eb" stroke-width="2" marker-end="url(#arr-c)"/>
+
+      <!-- Box 4: Docker Hub -->
+      <g filter="url(#sh-c)">
+        <rect x="484" y="42" width="118" height="86" rx="8" fill="url(#gTeal)" stroke="#0d9488" stroke-width="1.6"/>
+      </g>
+      <text x="543" y="68" text-anchor="middle" font-size="22">🐳</text>
+      <text x="543" y="90" text-anchor="middle" font-size="11" font-weight="700" fill="#0f766e">Docker Hub</text>
+      <text x="543" y="106" text-anchor="middle" font-size="9.5" fill="#0d9488">Registry</text>
+      <text x="543" y="119" text-anchor="middle" font-size="9.5" fill="#0d9488">:latest</text>
+
+      <!-- Freccia 4 -->
+      <line x1="604" y1="85" x2="636" y2="85" stroke="#2563eb" stroke-width="2" marker-end="url(#arr-c)"/>
+
+      <!-- Box 5: Deploy -->
+      <g filter="url(#sh-c)">
+        <rect x="638" y="42" width="118" height="86" rx="8" fill="url(#gGreen)" stroke="#16a34a" stroke-width="1.6"/>
+      </g>
+      <text x="697" y="68" text-anchor="middle" font-size="22">🚀</text>
+      <text x="697" y="90" text-anchor="middle" font-size="11" font-weight="700" fill="#15803d">Deploy</text>
+      <text x="697" y="106" text-anchor="middle" font-size="9.5" fill="#16a34a">docker compose</text>
+      <text x="697" y="119" text-anchor="middle" font-size="9.5" fill="#16a34a">pull + up</text>
+
+      <!-- Etichetta CI e CD -->
+      <rect x="156" y="138" width="310" height="18" rx="9" fill="#dbeafe"/>
+      <text x="311" y="150" text-anchor="middle" font-size="9.5" font-weight="600" fill="#1d4ed8">◀── Continuous Integration (CI) ──▶</text>
+      <rect x="470" y="138" width="200" height="18" rx="9" fill="#dcfce7"/>
+      <text x="570" y="150" text-anchor="middle" font-size="9.5" font-weight="600" fill="#15803d">◀── CD ──▶</text>
+    </svg>
+
+    <h3>Perché Docker rende la CI/CD più efficace</h3>
+    <table>
+      <thead><tr><th>Vantaggio</th><th>Spiegazione</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Ambiente identico ovunque</strong></td>
+          <td>Il Dockerfile definisce l'ambiente una volta sola: sviluppo, CI e produzione usano esattamente la stessa image. Nessuna sorpresa al deploy.</td>
+        </tr>
+        <tr>
+          <td><strong>Build riproducibili</strong></td>
+          <td>Ogni build parte dalla stessa image di base: i risultati sono deterministici e non dipendono dallo stato del server di CI.</td>
+        </tr>
+        <tr>
+          <td><strong>Velocità di avvio</strong></td>
+          <td>I container si avviano in pochi secondi: la CI può lanciare test isolati rapidamente e parallelizzarli su più container.</td>
+        </tr>
+        <tr>
+          <td><strong>Versioning delle image</strong></td>
+          <td>Ogni commit produce un'image con tag univoco su Docker Hub: si può sempre tornare a una versione precedente con <code>docker pull nome:tag</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Integrazione con i tool CI/CD</strong></td>
+          <td>GitHub Actions, GitLab CI, Jenkins e altri supportano nativamente Docker: bastano pochi step YAML per automatizzare tutto il ciclo.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ───────────────────────── 3. CONSIGLI ───────────────────────── -->
+  <section id="consigli">
+    <h2><span class="num">3</span> Consigli dall'esperto</h2>
+
+    <p>Tony Kelly, esperto di DevOps, indica cinque strategie per ottimizzare la CI/CD con Docker. Vediamo come si applicano concretamente al nostro progetto.</p>
+
+    <div class="tip-grid">
+      <div class="tip-card">
+        <div class="tip-num">Consiglio 1</div>
+        <h4>Multi-stage build</h4>
+        <p>Usa build multi-stage per ridurre la dimensione dell'image finale. Il nostro Dockerfile separa già lo <em>Stage 1: Build</em> (JDK + Ant) dallo <em>Stage 2: Runtime</em> (solo il JAR).</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-num">Consiglio 2</div>
+        <h4>Docker layer cache</h4>
+        <p>Ordina le istruzioni <code>COPY</code> dal meno al più frequentemente modificato: le dipendenze (<code>lib/</code>) prima dei sorgenti (<code>src/</code>). Docker riusa i layer invariati, velocizzando le rebuild.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-num">Consiglio 3</div>
+        <h4>Test parallelizzati</h4>
+        <p>Nei pipeline più avanzati si aggiunge uno stage dedicato ai test nel Dockerfile (<code>FROM build AS test</code>). GitHub Actions può eseguire più job in parallelo su container separati.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-num">Consiglio 4</div>
+        <h4>Layer sharing nei runner CI</h4>
+        <p>Abilita la cache di Docker Buildx nel workflow GitHub Actions con <code>cache-from</code> e <code>cache-to</code>. Riduce drasticamente i tempi di build nelle esecuzioni successive.</p>
+      </div>
+      <div class="tip-card">
+        <div class="tip-num">Consiglio 5</div>
+        <h4>Security scanning</h4>
+        <p>Integra nel workflow tool come <strong>Trivy</strong> o <strong>Docker Scout</strong> per rilevare vulnerabilità nelle dipendenze prima che l'image raggiunga la produzione.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── 4. TUTORIAL ───────────────────────── -->
+  <section id="tutorial">
+    <h2><span class="num">4</span> Tutorial: CI/CD per la Calcolatrice REST</h2>
+
+    <p>In questo tutorial configureremo una <strong>pipeline CI/CD completa</strong> per il progetto <em>ServerRest-Calcolatrice-DB-Docker</em>: ogni push sul branch <code>main</code> compilerà automaticamente il progetto Java, costruirà l'image Docker e la pubblicherà su Docker Hub.</p>
+
+    <div class="callout ok">
+      <div class="callout-title">Prerequisiti — già completati nei tutorial precedenti</div>
+      Hai già a disposizione:
+      <ul style="margin-top:6px">
+        <li>Il progetto Java con il <code>Dockerfile</code> multi-stage (Stage 1: Build, Stage 2: Runtime)</li>
+        <li>Il file <code>docker-compose.yml</code> per l'orchestrazione locale con MySQL</li>
+        <li>Il file <code>.dockerignore</code></li>
+      </ul>
+      Servono ancora: un account <strong>GitHub</strong> (gratuito) e un account <strong>Docker Hub</strong> (gratuito).
+    </div>
+
+    <!-- ── STEP ONE ── -->
+    <h3>Step 5 — Creare il repository GitHub e configurare le credenziali</h3>
+
+    <ol class="steps">
+      <li>
+        Accedi a <strong>GitHub</strong> e crea un nuovo repository pubblico (es. <code>serverrest-calcolatrice-db-docker</code>).
+      </li>
+      <li>
+        Nel repository appena creato vai su <strong>Settings → Secrets and variables → Actions</strong>.
+      </li>
+      <li>
+        Crea una <em>Repository variable</em> (non secret) chiamata <code>DOCKER_USERNAME</code> con il tuo username di Docker Hub.<br>
+        <small style="color:var(--muted)">Le variabili sono visibili nei log; i secret sono oscurati. Username non è un dato sensibile, quindi va come variabile.</small>
+      </li>
+      <li>
+        Vai su <strong>Docker Hub → Account Settings → Personal access tokens</strong> e genera un nuovo token con permessi di lettura e scrittura. Chiamalo <code>github-actions-calcolatrice</code>.
+      </li>
+      <li>
+        Torna su GitHub e crea un <em>Repository secret</em> chiamato <code>DOCKERHUB_TOKEN</code> incollando il token appena generato.
+      </li>
+      <li>
+        Dal terminale, collega il repository locale a quello GitHub e fai il primo push:
+<pre><code><span class="cm"># Collega il repository remoto</span>
+<span class="cmd">git remote set-url origin https://github.com/TUO-USERNAME/serverrest-calcolatrice-db-docker.git</span>
+
+<span class="cm"># Aggiungi tutti i file (Dockerfile, docker-compose.yml, src/, lib/, ecc.)</span>
+<span class="cmd">git add -A</span>
+<span class="cmd">git commit -m "Aggiungi Dockerfile e docker-compose per CI/CD"</span>
+<span class="cmd">git push -u origin main</span>
+</code></pre>
+      </li>
+    </ol>
+
+    <div class="callout warn">
+      <div class="callout-title">Non mettere mai le credenziali nel codice</div>
+      Password e token non devono mai comparire nei file sorgente o nei commit. Usa <strong>sempre</strong> i GitHub Secrets (<code>${{ secrets.NOME }}</code>) per i dati sensibili e le Repository Variables (<code>${{ vars.NOME }}</code>) per i valori non sensibili.
+    </div>
+
+    <!-- ── STEP TWO ── -->
+    <h3>Step 6 — Configurare il workflow GitHub Actions</h3>
+
+    <p>GitHub Actions legge i workflow dalla cartella <code>.github/workflows/</code> del repository. Creiamo il file che automatizzerà la nostra pipeline.</p>
+
+    <ol class="steps">
+      <li>
+        Nel repository GitHub clicca sul tab <strong>Actions</strong>.
+      </li>
+      <li>
+        Clicca su <strong>New workflow</strong> → <strong>set up a workflow yourself</strong>.
+      </li>
+      <li>
+        Incolla la seguente configurazione YAML nell'editor e clicca <strong>Commit changes</strong>:
+      </li>
+    </ol>
+
+<pre><code><span class="label">.github/workflows/ci.yml</span><span class="kw">name</span>: <span class="str">CI – Calcolatrice REST</span>
+
+<span class="cm"># Il workflow si avvia ad ogni push sul branch main</span>
+<span class="kw">on</span>:
+  <span class="kw">push</span>:
+    <span class="kw">branches</span>:
+      - <span class="str">main</span>
+
+<span class="kw">jobs</span>:
+  <span class="kw">build-and-push</span>:
+    <span class="kw">runs-on</span>: <span class="str">ubuntu-latest</span>
+
+    <span class="kw">steps</span>:
+
+      <span class="cm"># 1. Clona il repository nel runner</span>
+      - <span class="kw">name</span>: <span class="str">Checkout del codice</span>
+        <span class="kw">uses</span>: <span class="str">actions/checkout@v4</span>
+
+      <span class="cm"># 2. Autentica il runner su Docker Hub</span>
+      - <span class="kw">name</span>: <span class="str">Login a Docker Hub</span>
+        <span class="kw">uses</span>: <span class="str">docker/login-action@v3</span>
+        <span class="kw">with</span>:
+          <span class="kw">username</span>: <span class="sec">${{ vars.DOCKER_USERNAME }}</span>
+          <span class="kw">password</span>: <span class="sec">${{ secrets.DOCKERHUB_TOKEN }}</span>
+
+      <span class="cm"># 3. Configura Docker Buildx (supporto multi-piattaforma e cache)</span>
+      - <span class="kw">name</span>: <span class="str">Configurazione Docker Buildx</span>
+        <span class="kw">uses</span>: <span class="str">docker/setup-buildx-action@v3</span>
+
+      <span class="cm"># 4. Costruisce l'image e la pubblica su Docker Hub</span>
+      - <span class="kw">name</span>: <span class="str">Build e push dell'immagine</span>
+        <span class="kw">uses</span>: <span class="str">docker/build-push-action@v6</span>
+        <span class="kw">with</span>:
+          <span class="kw">platforms</span>: <span class="str">linux/amd64,linux/arm64</span>
+          <span class="kw">push</span>: <span class="num">true</span>
+          <span class="kw">tags</span>: <span class="sec">${{ vars.DOCKER_USERNAME }}</span><span class="str">/serverrest-calcolatrice:latest</span>
+          <span class="cm"># Abilita la cache per build più veloci nelle esecuzioni successive</span>
+          <span class="kw">cache-from</span>: <span class="str">type=gha</span>
+          <span class="kw">cache-to</span>: <span class="str">type=gha,mode=max</span>
+</code></pre>
+
+    <h3>Spiegazione dei passi del workflow</h3>
+    <table>
+      <thead><tr><th>Step</th><th>Action usata</th><th>Cosa fa</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Checkout</strong></td>
+          <td><code>actions/checkout@v4</code></td>
+          <td>Scarica il codice del repository nel runner (la macchina virtuale di GitHub).</td>
+        </tr>
+        <tr>
+          <td><strong>Login Docker Hub</strong></td>
+          <td><code>docker/login-action@v3</code></td>
+          <td>Autentica il runner su Docker Hub usando le credenziali salvate nei secret/variable. Necessario per poter fare il push.</td>
+        </tr>
+        <tr>
+          <td><strong>Setup Buildx</strong></td>
+          <td><code>docker/setup-buildx-action@v3</code></td>
+          <td>Configura Docker Buildx, il builder avanzato di Docker che supporta multi-piattaforma (<code>amd64</code> + <code>arm64</code>) e la cache.</td>
+        </tr>
+        <tr>
+          <td><strong>Build &amp; Push</strong></td>
+          <td><code>docker/build-push-action@v6</code></td>
+          <td>Esegue il Dockerfile (compilazione Ant + download driver JDBC), costruisce l'image per due architetture e la pubblica su Docker Hub con il tag <code>:latest</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout tip">
+      <div class="callout-title">Perché linux/amd64,linux/arm64?</div>
+      Costruire per entrambe le architetture permette di usare l'image sia su PC Intel/AMD (<code>amd64</code>) sia su Mac con chip Apple Silicon o server ARM (<code>arm64</code>). Docker Hub servirà automaticamente la variante corretta in base all'architettura del sistema che scarica l'image.
+    </div>
+
+    <!-- ── STEP THREE ── -->
+    <h3>Step 7 — Eseguire e verificare il workflow</h3>
+
+    <ol class="steps">
+      <li>
+        Scarica il file del workflow appena creato su GitHub nel repository locale:
+<pre><code><span class="cmd">git pull origin main</span>
+</code></pre>
+      </li>
+      <li>
+        Apporta una qualsiasi modifica al codice (anche solo un commento) e fai push. Il workflow si attiverà automaticamente:
+<pre><code><span class="cmd">git add -A</span>
+<span class="cmd">git commit -m "Test pipeline CI/CD"</span>
+<span class="cmd">git push</span>
+</code></pre>
+      </li>
+      <li>
+        Vai sul tab <strong>Actions</strong> del repository GitHub. Vedrai il workflow <em>"CI – Calcolatrice REST"</em> in esecuzione con un cerchio giallo animato. Clicca su di esso per vedere i log in tempo reale.
+      </li>
+      <li>
+        Attendi che tutti i passi mostrino la spunta verde ✓. L'intera pipeline richiede tipicamente 3–5 minuti al primo avvio (download delle image di base), poi ~1 minuto grazie alla cache.
+      </li>
+      <li>
+        Accedi a <strong>Docker Hub → Repositories</strong>. Troverai il repository <code>TUO-USERNAME/serverrest-calcolatrice</code> con l'image appena pubblicata, taggata <code>latest</code>.
+      </li>
+    </ol>
+
+    <div class="callout ok">
+      <div class="callout-title">Pipeline completata con successo</div>
+      Da questo momento in poi, ad ogni <code>git push</code> su <code>main</code> GitHub Actions ricompilerà automaticamente il progetto Java, costruirà l'image Docker e la pubblicherà su Docker Hub — senza alcun intervento manuale.
+    </div>
+
+    <h3>Usare l'image pubblicata su Docker Hub</h3>
+    <p>Chiunque abbia il link del repository può ora scaricare ed eseguire la Calcolatrice REST senza nemmeno installare Java o Ant:</p>
+<pre><code><span class="cm"># Scarica ed esegui l'immagine direttamente da Docker Hub</span>
+<span class="cmd">docker run -d -p 8080:8080 TUO-USERNAME/serverrest-calcolatrice:latest</span>
+
+<span class="cm"># Oppure sostituisci l'immagine nel docker-compose.yml, commentando "build: ."</span>
+<span class="cm"># e aggiungendo "image: TUO-USERNAME/serverrest-calcolatrice:latest"</span>
+</code></pre>
+  </section>
+
+  <!-- ───────────────────────── 5. BEST PRACTICE ───────────────────────── -->
+  <section id="best-practice">
+    <h2><span class="num">5</span> Best practice per la CI/CD con Docker</h2>
+
+    <h3>Ambiente consistente con i container Docker</h3>
+    <p>Docker garantisce che l'ambiente di esecuzione sia identico su tutte le macchine, incapsulando dipendenze e librerie all'interno del container. Il Dockerfile va mantenuto aggiornato: se cambia una dipendenza (es. nuova versione di Gson), va aggiornato il file e non solo l'installazione locale.</p>
+
+    <h3>Version control dei Dockerfile</h3>
+    <p>Salvare il Dockerfile in Git (come già facciamo) permette di tracciare ogni modifica, tornare a versioni precedenti e revisionare i cambiamenti tramite pull request prima di integrarli. Ogni immagine pubblicata su Docker Hub dovrebbe avere un <strong>tag che corrisponde al commit Git</strong> (es. <code>:1.2.0</code> o <code>:abc1234</code>), non solo <code>:latest</code>.</p>
+
+    <div class="callout tip">
+      <div class="callout-title">Tag semantici nel workflow</div>
+      Per una pipeline più robusta si può aggiungere l'action <code>docker/metadata-action</code> che genera automaticamente tag come <code>:1.0.0</code>, <code>:1.0</code>, <code>:latest</code> basati sui tag Git e sui numeri di versione.
+    </div>
+
+    <h3>Pulizia automatica delle image non utilizzate</h3>
+    <p>Docker non elimina automaticamente le image obsolete: nel tempo il disco si riempie. È buona pratica configurare una procedura di pulizia periodica.</p>
+
+<pre><code><span class="cm"># Rimuove tutte le image non associate a container attivi o fermi</span>
+<span class="cmd">docker image prune -a</span>
+
+<span class="cm"># Rimuove i container fermi da più di 24 ore</span>
+<span class="cmd">docker container prune --filter "until=24h"</span>
+
+<span class="cm"># Pulizia generale: image, container, network e cache non in uso</span>
+<span class="cmd">docker system prune -f</span>
+</code></pre>
+
+    <h3>Automatizzare il processo di build</h3>
+    <p>Con il workflow GitHub Actions già configurato, ogni push avvia automaticamente la build. Per ambienti più complessi si possono definire più job: uno per il test, uno per la build dell'image, uno per il deploy su un server remoto, ognuno con dipendenze esplicite (<code>needs:</code>).</p>
+
+    <h3>Ottimizzare le image Docker</h3>
+    <p>Le image piccole si scaricano più velocemente, occupano meno spazio e riducono la superficie di attacco. Le strategie principali:</p>
+    <ul>
+      <li><strong>Multi-stage build</strong>: già implementato nel nostro Dockerfile — lo Stage 2 contiene solo il JRE e i JAR, non gli strumenti di build.</li>
+      <li><strong>Immagini base minimali</strong>: le varianti <code>-alpine</code> sono molto più leggere delle immagini standard. Il file <code>Dockerfile.mac</code> del progetto usa già <code>eclipse-temurin:24-jdk-alpine</code>.</li>
+      <li><strong>.dockerignore</strong>: il file <code>.dockerignore</code> del progetto esclude già <code>build/</code>, <code>dist/</code> e <code>*.db</code> dal contesto di build.</li>
+    </ul>
+
+    <h3>Monitoraggio e logging dei container</h3>
+    <p>In un ambiente di produzione è fondamentale sapere cosa sta facendo il container in ogni momento. Gli strumenti più usati:</p>
+    <table>
+      <thead><tr><th>Tool</th><th>Funzione</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Prometheus</strong></td><td>Raccolta di metriche (CPU, memoria, richieste/secondo, errori)</td></tr>
+        <tr><td><strong>Grafana</strong></td><td>Visualizzazione delle metriche di Prometheus in dashboard grafiche</td></tr>
+        <tr><td><code>docker logs -f</code></td><td>Log in tempo reale del container — primo strumento di debug</td></tr>
+        <tr><td><code>docker stats</code></td><td>Utilizzo di CPU, RAM e rete in tempo reale per ogni container</td></tr>
+        <tr><td><strong>Docker logging drivers</strong></td><td>Invio automatico dei log a sistemi centralizzati (es. ELK Stack)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ───────────────────────── 6. CONCLUSIONI ───────────────────────── -->
+  <section id="conclusioni">
+    <h2><span class="num">6</span> Conclusioni</h2>
+
+    <p>In questo percorso abbiamo costruito un sistema completo che parte dal codice sorgente Java e arriva automaticamente a un'image pronta per il deploy su qualsiasi server. Ricapitolando i passi compiuti:</p>
+
+    <ol class="steps">
+      <li>Containerizzato l'applicazione Java con un <strong>Dockerfile multi-stage</strong> che scarica le dipendenze e compila con Ant.</li>
+      <li>Orchestrato la Calcolatrice REST insieme a <strong>MySQL in container</strong> tramite <code>docker-compose.yml</code>, con rete interna, healthcheck e volume persistente.</li>
+      <li>Pubblicato il repository su <strong>GitHub</strong> e configurato le credenziali Docker Hub come secret.</li>
+      <li>Creato un <strong>workflow GitHub Actions</strong> che ad ogni push su <code>main</code> compila, costruisce e pubblica automaticamente l'image su Docker Hub.</li>
+    </ol>
+
+    <div class="callout info">
+      <div class="callout-title">Prossimi passi — per approfondire</div>
+      <ul style="margin-top:6px">
+        <li>Aggiungere uno <strong>stage di test</strong> nel Dockerfile e un job di test nel workflow.</li>
+        <li>Usare <code>docker/metadata-action</code> per generare <strong>tag semantici</strong> automatici (<code>:1.0.0</code>, <code>:latest</code>).</li>
+        <li>Aggiungere uno step di <strong>security scanning</strong> con Trivy o Docker Scout nel workflow.</li>
+        <li>Configurare un secondo job nel workflow per il <strong>deploy automatico</strong> su un server remoto via SSH.</li>
+      </ul>
+    </div>
+
+    <div class="callout ok">
+      <div class="callout-title">File del progetto utilizzati in questo tutorial</div>
+      <code>Dockerfile</code> — build multi-stage Java (Stage 1: Build con Ant, Stage 2: Runtime)<br>
+      <code>docker-compose.yml</code> — orchestrazione server REST + MySQL con rete interna<br>
+      <code>.dockerignore</code> — esclusione di build/, dist/, *.db dal contesto Docker<br>
+      <code>.github/workflows/ci.yml</code> — pipeline GitHub Actions (da creare seguendo il tutorial)
+    </div>
+  </section>
+
+  <footer>
+    <p>ServerRest-Calcolatrice-DB-Docker &bull; TEPSIT Classe 5 &bull; CI/CD con Docker e GitHub Actions &bull; 2026</p>
+    <p style="margin-top:4px">Ispirato a: <em>CI/CD with Docker</em> — Octopus Deploy DevOps Guide</p>
+  </footer>
+
+</main>
+</body>
+</html>

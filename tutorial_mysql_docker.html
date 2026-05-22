@@ -217,6 +217,33 @@
     .diff-card.after  h3 { background: #16a34a; }
     .diff-card pre { margin: 0; border-radius: 0 0 var(--radius) var(--radius); }
 
+    /* ── Dockerfile OS grid ── */
+    .dockerfile-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      margin: 14px 0;
+    }
+    .dockerfile-grid .df-card { display: flex; flex-direction: column; }
+    .dockerfile-grid .df-card h3 {
+      margin: 0;
+      padding: 10px 14px;
+      font-size: .95rem;
+      border-radius: 8px 8px 0 0;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+    .dockerfile-grid .df-card.macos   h3 { background: #475569; }
+    .dockerfile-grid .df-card.windows h3 { background: #0078d4; }
+    .dockerfile-grid .df-card pre {
+      margin: 0;
+      border-radius: 0 0 var(--radius) var(--radius);
+      flex: 1;
+    }
+
     @media (max-width: 680px) {
       .diff-grid { grid-template-columns: 1fr; }
       .page-header { padding: 32px 20px; }
@@ -493,10 +520,12 @@
   <section id="dockerfile">
     <h2><span class="num">3</span> Il Dockerfile con supporto MySQL</h2>
 
-    <p>Il Dockerfile usa un <strong>multi-stage build</strong> ispirato allo stile del file <code>Dockerfile.mac</code> del progetto: immagini Alpine leggere, commenti in italiano, <code>ENTRYPOINT + CMD</code> per la porta configurabile.</p>
+    <p>Il progetto include due Dockerfile con supporto MySQL: <code>Dockerfile</code> per <strong>macOS</strong> e <code>Dockerfile.win</code> per <strong>Windows</strong>. Entrambi usano un <strong>multi-stage build</strong> e aggiungono rispetto alla versione base (solo SQLite) il download automatico dei driver JDBC (<code>sqlite-jdbc</code> e <code>mysql-connector-j</code>). Le differenze principali riguardano la directory di lavoro, l'immagine di runtime e il meccanismo di configurazione della porta.</p>
 
-    <p>Rispetto alla versione base (solo SQLite) sono stati aggiunti due passi nel <em>Build stage</em>: l'installazione di <code>curl</code> e il download dei driver JDBC mancanti (<code>sqlite-jdbc</code> non è tracciato in git; <code>mysql-connector-j</code> non era necessario in precedenza).</p>
+<div class="dockerfile-grid">
 
+  <div class="df-card macos">
+    <h3>🍎 macOS &mdash; <code style="color:#fff">Dockerfile</code></h3>
 <pre><code><span class="label">Dockerfile</span><span class="cm"># ── Stage 1: Build ──────────────────────────────────────────</span>
 <span class="kw">FROM</span> eclipse-temurin:<span class="num">24-jdk</span> <span class="kw">AS</span> build
 
@@ -545,6 +574,73 @@
     <span class="str">"serverrest.App"</span>]
 <span class="kw">CMD</span> [<span class="str">"8080"</span>]
 </code></pre>
+  </div>
+
+  <div class="df-card windows">
+    <h3>🪟 Windows &mdash; <code style="color:#fff">Dockerfile.win</code></h3>
+<pre><code><span class="label">Dockerfile.win</span><span class="cm"># ── Stage 1: Build ──────────────────────────────────────────</span>
+<span class="kw">FROM</span> eclipse-temurin:<span class="num">24-jdk</span> <span class="kw">AS</span> build
+
+<span class="cm"># Installa Apache Ant e curl (necessari per la build e per scaricare i driver)</span>
+<span class="kw">RUN</span> <span class="cmd">apt-get update</span> \
+    &amp;&amp; <span class="cmd">apt-get install -y --no-install-recommends ant curl</span> \
+    &amp;&amp; <span class="cmd">rm -rf /var/lib/apt/lists/*</span>
+
+<span class="cm"># Crea la directory di lavoro</span>
+<span class="kw">WORKDIR</span> /workspace
+
+<span class="cm"># Copia i file necessari per la build</span>
+<span class="kw">COPY</span> build.xml manifest.mf ./
+<span class="kw">COPY</span> nbproject ./nbproject
+<span class="kw">COPY</span> src       ./src
+<span class="kw">COPY</span> lib       ./lib
+
+<span class="cm"># Scarica i driver JDBC: sqlite-jdbc (non tracciato in git) e mysql-connector-j</span>
+<span class="kw">RUN</span> <span class="cmd">curl -fsSL</span> \
+      <span class="str">"https://github.com/xerial/sqlite-jdbc/releases/download/3.46.1.3/sqlite-jdbc-3.46.1.3.jar"</span> \
+      <span class="flag">-o</span> lib/sqlite-jdbc.jar \
+ &amp;&amp; <span class="cmd">curl -fsSL</span> \
+      <span class="str">"https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.4.0/mysql-connector-j-8.4.0.jar"</span> \
+      <span class="flag">-o</span> lib/mysql-connector-j.jar
+
+<span class="cm"># Compila e crea il JAR tramite Ant (clean prima della build)</span>
+<span class="kw">RUN</span> <span class="cmd">ant -noinput clean jar</span>
+
+<span class="cm"># ── Stage 2: Runtime ─────────────────────────────────────────</span>
+<span class="kw">FROM</span> eclipse-temurin:<span class="num">24-jre</span>
+
+<span class="kw">WORKDIR</span> /app
+
+<span class="cm"># Porta predefinita (sovrascrivibile a runtime con: docker run -e PORT=9090 ...)</span>
+<span class="kw">ENV</span> PORT=<span class="num">8080</span>
+
+<span class="cm"># Copia il JAR prodotto e tutti i driver JDBC</span>
+<span class="kw">COPY</span> <span class="flag">--from=build</span> /workspace/dist/ServerRest.jar ./ServerRest.jar
+<span class="kw">COPY</span> <span class="flag">--from=build</span> /workspace/lib                 ./lib
+
+<span class="cm"># Espone la porta del server REST</span>
+<span class="kw">EXPOSE</span> <span class="num">8080</span>
+
+<span class="cm"># Avvia il server; il database è configurato tramite la variabile d'ambiente DB_TYPE.</span>
+<span class="cm"># La porta è configurabile con la variabile PORT: docker run -e PORT=9090 ...</span>
+<span class="kw">ENTRYPOINT</span> [<span class="str">"sh"</span>, <span class="str">"-c"</span>, <span class="str">"exec java -cp /app/ServerRest.jar:/app/lib/* serverrest.App \"${PORT}\""</span>]
+</code></pre>
+  </div>
+
+</div>
+
+    <h3>Differenze tra i due Dockerfile</h3>
+    <table>
+      <thead><tr><th>Aspetto</th><th>🍎 macOS (Dockerfile)</th><th>🪟 Windows (Dockerfile.win)</th></tr></thead>
+      <tbody>
+        <tr><td>Directory build</td><td><code>/build</code></td><td><code>/workspace</code></td></tr>
+        <tr><td>apt-get</td><td>standard</td><td><code>--no-install-recommends</code> (meno pacchetti)</td></tr>
+        <tr><td>Comando Ant</td><td><code>ant jar</code></td><td><code>ant -noinput clean jar</code> (pulisce prima)</td></tr>
+        <tr><td>Immagine runtime</td><td><code>eclipse-temurin:24-jdk</code></td><td><code>eclipse-temurin:24-jre</code> (più leggera)</td></tr>
+        <tr><td>Configurazione porta</td><td>argomento CMD: <code>docker run ... image 9090</code></td><td>variabile ENV: <code>docker run -e PORT=9090 ...</code></td></tr>
+        <tr><td>COPY lib runtime</td><td>file per file (espliciti)</td><td>intera cartella <code>./lib</code></td></tr>
+      </tbody>
+    </table>
 
     <h3>Spiegazione delle istruzioni aggiunte</h3>
     <table>
